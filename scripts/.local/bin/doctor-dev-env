@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "== Versions =="
+command -v git >/dev/null && git --version
+command -v gh >/dev/null && gh --version
+command -v docker >/dev/null && docker --version
+command -v java >/dev/null && java -version
+command -v mvn >/dev/null && mvn -version
+command -v gradle >/dev/null && gradle -version
+command -v node >/dev/null && node -v
+command -v npm >/dev/null && npm -v
+command -v ng >/dev/null && ng version || true
+
+echo
+echo "== Git identity in current directory =="
+git config user.name || true
+git config user.email || true

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+mkdir -p "$HOME/projects/personal"
+mkdir -p "$HOME/projects/school"
+
+git config --global init.defaultBranch main
+git config --global core.editor nvim
+git config --global pull.rebase false
+git config --global push.autoSetupRemote true
+
+echo "Git configured."
+echo "Use ~/projects/personal for israelhf24@gmail.com"
+echo "Use ~/projects/school for m14011063@orizaba.tecnm.mx"

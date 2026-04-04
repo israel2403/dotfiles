@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+bootstrap-system
+bootstrap-docker
+bootstrap-git
+setup-java
+setup-node
+setup-angular
+
+echo "Developer environment ready."

@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+sudo pacman -Syu --noconfirm
+
+sudo pacman -S --needed --noconfirm \
+  stow \
+  git \
+  curl \
+  unzip \
+  zip \
+  jq \
+  base-devel \
+  github-cli \
+  docker \
+  docker-buildx \
+  nvm

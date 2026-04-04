@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+export SDKMAN_DIR="${HOME}/.sdkman"
+
+if [ ! -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]; then
+  export sdkman_rcupdate=false
+  curl -s "https://get.sdkman.io" | bash
+fi
+
+# shellcheck disable=SC1090
+source "${SDKMAN_DIR}/bin/sdkman-init.sh"
+
+JAVA21_CANDIDATE="$(sdk list java | awk '/[[:space:]]21\..*-tem/ {print $NF; exit}')"
+
+if [ -z "${JAVA21_CANDIDATE}" ]; then
+  echo "Could not detect a Java 21 Temurin candidate from SDKMAN."
+  exit 1
+fi
+
+sdk install java "${JAVA21_CANDIDATE}" || true
+sdk default java "${JAVA21_CANDIDATE}"
+
+sdk install maven || true
+
+sdk install gradle || true
+
+java -version
+mvn -version
+gradle -version

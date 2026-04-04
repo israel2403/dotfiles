@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+export NVM_DIR="$HOME/.nvm"
+
+if [ -s "/usr/share/nvm/init-nvm.sh" ]; then
+  . /usr/share/nvm/init-nvm.sh
+else
+  echo "nvm init script not found at /usr/share/nvm/init-nvm.sh"
+  exit 1
+fi
+
+nvm install --lts
+nvm alias default 'lts/*'
+nvm use --lts
+
+node -v
+npm -v

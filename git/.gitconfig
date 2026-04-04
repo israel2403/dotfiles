@@ -1,0 +1,23 @@
+[init]
+	defaultBranch = main
+
+[pull]
+	rebase = false
+
+[push]
+	autoSetupRemote = true
+
+[core]
+	editor = nvim
+
+[includeIf "gitdir:~/projects/personal/"]
+    path = ~/.gitconfig-personal
+
+[includeIf "gitdir:~/projects/school/"]
+    path = ~/.gitconfig-school
+[credential "https://github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
+[credential "https://gist.github.com"]
+	helper = 
+	helper = !/usr/bin/gh auth git-credential
