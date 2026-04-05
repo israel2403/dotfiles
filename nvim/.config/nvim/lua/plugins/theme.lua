@@ -1,0 +1,1 @@
+/home/isra/.config/omarchy/current/theme/neovim.lua
