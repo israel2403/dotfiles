@@ -1,3 +1,9 @@
+# If not running interactively, don't do anything (leave this at the top of this file)
+[[ $- != *i* ]] && return
+
+# All the default Omarchy aliases and functions
+source ~/.local/share/omarchy/default/bash/rc
+
 # ~/.local/bin on PATH
 export PATH="$HOME/.local/bin:$PATH"
 
