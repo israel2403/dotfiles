@@ -1,0 +1,4 @@
+
+# Machine-local: omarchy theme switcher writes this file per-machine.
+# It is (re)created by link-omarchy-theme after stow.
+nvim/.config/nvim/lua/plugins/theme.lua

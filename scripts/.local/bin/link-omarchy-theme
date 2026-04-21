@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# link-omarchy-theme
+# Create the machine-local symlink that makes nvim pick up Omarchy's current
+# theme colors. This file is intentionally NOT in the dotfiles repo because
+# the target is a per-machine, theme-switcher-managed path.
+#
+# Target layout on disk after this script:
+#     ~/.config/nvim/lua/plugins/theme.lua  ->
+#         ~/.config/omarchy/current/theme/neovim.lua
+#
+# Idempotent: safe to run multiple times. No-op if Omarchy is not installed.
+
+set -euo pipefail
+
+LINK="$HOME/.config/nvim/lua/plugins/theme.lua"
+TARGET="$HOME/.config/omarchy/current/theme/neovim.lua"
+
+# If there's no Omarchy theme dir yet, silently skip; the nvim config tolerates
+# a missing theme.lua (omarchy-theme-hotreload.lua pcall's the require).
+if [[ ! -e "$HOME/.config/omarchy" ]]; then
+    echo "omarchy not installed yet; skipping theme symlink."
+    exit 0
+fi
+
+mkdir -p "$(dirname "$LINK")"
+
+# Replace any existing file/symlink so we always end up with the right target.
+if [[ -L "$LINK" || -e "$LINK" ]]; then
+    rm -f "$LINK"
+fi
+
+ln -s "$TARGET" "$LINK"
+echo "linked $LINK -> $TARGET"
+
+if [[ ! -e "$TARGET" ]]; then
+    echo "note: $TARGET does not exist yet (no theme selected)."
+    echo "      pick a theme in Omarchy (Super+Ctrl+Shift+Space) and the link will resolve."
+fi

@@ -88,6 +88,14 @@ for pkg in "${packages[@]}"; do
 done
 
 # -----------------------------------------------------------------------------
+# 4b. Recreate machine-local symlinks that are intentionally NOT in the repo.
+# -----------------------------------------------------------------------------
+if command -v link-omarchy-theme >/dev/null 2>&1; then
+    echo ">>> link-omarchy-theme"
+    link-omarchy-theme
+fi
+
+# -----------------------------------------------------------------------------
 # 5. Replay the package manifest.
 # -----------------------------------------------------------------------------
 if command -v migrate-packages >/dev/null 2>&1; then
