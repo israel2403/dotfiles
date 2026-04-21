@@ -1,0 +1,26 @@
+# Global stow ignore (applies to every package under this repo).
+# Even if a file ends up committed here by accident, stow will refuse to
+# symlink it into one of these Omarchy/machine-specific locations.
+#
+# Syntax: one Perl regex per line; matched against the *full* path.
+# See `man stow` / "IGNORE LISTS".
+
+\.config/hypr(/.*)?
+\.config/waybar(/.*)?
+\.config/mako(/.*)?
+\.config/walker(/.*)?
+\.config/alacritty(/.*)?
+\.config/ghostty(/.*)?
+\.config/kitty(/.*)?
+\.config/omarchy(/.*)?
+\.config/sddm(/.*)?
+\.config/hypridle(/.*)?
+\.config/hyprlock(/.*)?
+\.config/hyprpicker(/.*)?
+\.config/hyprsunset(/.*)?
+\.config/swayosd(/.*)?
+\.config/fcitx5(/.*)?
+\.config/systemd(/.*)?
+# Never touch monitor / input hardware configs
+monitors\.conf
+input\.conf

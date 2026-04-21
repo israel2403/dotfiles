@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+# sync-projects
+# Push or pull ~/projects/ between two machines over SSH using rsync.
+#
+# Usage:
+#   sync-projects push <user@host>[:<path>]   # copy local ~/projects → remote
+#   sync-projects pull <user@host>[:<path>]   # copy remote ~/projects → local
+#   sync-projects push <user@host> --dry-run  # preview, no changes
+#
+# Example (from the OLD machine, pushing to the freshly-installed Omarchy box):
+#   sync-projects push isra@192.168.1.42
+#
+# Notes
+#   * Uses rsync with -aHAX --info=progress2 so permissions/ACLs/xattrs are
+#     preserved, symlinks kept, and you get a live progress bar.
+#   * --delete is OFF by default (safer). Pass --delete to mirror.
+#   * Excludes heavy build / cache dirs that don't need to travel.
+#   * If your remote sshd runs on a non-standard port, pass it via:
+#         SSH_PORT=2222 sync-projects push isra@host
+
+set -euo pipefail
+
+usage() {
+    sed -n '2,20p' "$0" >&2
+    exit 1
+}
+
+DIRECTION="${1:-}"
+REMOTE="${2:-}"
+shift || true; shift || true || true
+EXTRA_ARGS=("$@")
+
+[[ -z "$DIRECTION" || -z "$REMOTE" ]] && usage
+case "$DIRECTION" in push|pull) ;; *) usage;; esac
+
+SRC_DIR="${SRC_DIR:-$HOME/projects/}"
+# Default remote path mirrors the local path so layout stays consistent.
+if [[ "$REMOTE" == *:* ]]; then
+    REMOTE_HOST="${REMOTE%%:*}"
+    REMOTE_PATH="${REMOTE#*:}"
+else
+    REMOTE_HOST="$REMOTE"
+    REMOTE_PATH="~/projects/"
+fi
+
+SSH_PORT="${SSH_PORT:-22}"
+RSYNC_SSH="ssh -p $SSH_PORT -o ConnectTimeout=10"
+
+# Exclude patterns — safe defaults; override with EXCLUDES env var.
+DEFAULT_EXCLUDES=(
+    --exclude='.git/objects/pack/tmp_*'
+    --exclude='node_modules'
+    --exclude='target/'
+    --exclude='build/'
+    --exclude='dist/'
+    --exclude='.gradle/'
+    --exclude='.venv/'
+    --exclude='__pycache__/'
+    --exclude='.mypy_cache/'
+    --exclude='.pytest_cache/'
+    --exclude='.next/'
+    --exclude='.cache/'
+    --exclude='*.log'
+)
+
+RSYNC_OPTS=(
+    -aHAX
+    --info=progress2
+    --human-readable
+    --partial
+    "${DEFAULT_EXCLUDES[@]}"
+    "${EXTRA_ARGS[@]}"
+    -e "$RSYNC_SSH"
+)
+
+echo ">>> direction   : $DIRECTION"
+echo ">>> remote host : $REMOTE_HOST"
+echo ">>> remote path : $REMOTE_PATH"
+echo ">>> local path  : $SRC_DIR"
+echo ">>> ssh port    : $SSH_PORT"
+echo
+
+case "$DIRECTION" in
+push)
+    # Ensure the remote parent exists.
+    ssh -p "$SSH_PORT" "$REMOTE_HOST" "mkdir -p $REMOTE_PATH"
+    rsync "${RSYNC_OPTS[@]}" "$SRC_DIR" "$REMOTE_HOST:$REMOTE_PATH"
+    ;;
+pull)
+    mkdir -p "$SRC_DIR"
+    rsync "${RSYNC_OPTS[@]}" "$REMOTE_HOST:$REMOTE_PATH" "$SRC_DIR"
+    ;;
+esac
+
+echo ">>> Done."

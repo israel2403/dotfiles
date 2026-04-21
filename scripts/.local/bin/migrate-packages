@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# migrate-packages
+# Replay ~/dotfiles/packages/{pacman,aur}.txt on this machine.
+# Works great on a fresh Omarchy install.
+#
+# Usage:
+#   migrate-packages               # install everything
+#   migrate-packages --dry-run     # show what would happen, no changes
+
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+PAC="$DOTFILES/packages/pacman.txt"
+AUR="$DOTFILES/packages/aur.txt"
+
+DRY_RUN=0
+if [[ "${1:-}" == "--dry-run" || "${1:-}" == "-n" ]]; then
+    DRY_RUN=1
+fi
+
+if [[ ! -f "$PAC" ]]; then
+    echo "ERROR: $PAC not found. Clone your dotfiles repo first." >&2
+    exit 1
+fi
+
+# -----------------------------------------------------------------------------
+# Refresh mirrors + upgrade first so we install against current packages.
+# -----------------------------------------------------------------------------
+if [[ $DRY_RUN -eq 0 ]]; then
+    sudo pacman -Syu --noconfirm
+fi
+
+# -----------------------------------------------------------------------------
+# Pacman (official repos).
+# Skip blank lines and '#' comments.
+# -----------------------------------------------------------------------------
+mapfile -t pac_pkgs < <(grep -vE '^\s*(#|$)' "$PAC")
+echo ">>> pacman: ${#pac_pkgs[@]} packages to install (or already present)."
+if [[ $DRY_RUN -eq 1 ]]; then
+    printf '  would install: %s\n' "${pac_pkgs[@]}" | head -20
+    echo "  (... truncated)"
+else
+    sudo pacman -S --needed --noconfirm "${pac_pkgs[@]}"
+fi
+
+# -----------------------------------------------------------------------------
+# AUR helper: use yay if present, fall back to paru.
+# If neither exists yet, install yay from source.
+# -----------------------------------------------------------------------------
+aur_helper=""
+for helper in yay paru; do
+    if command -v "$helper" >/dev/null 2>&1; then
+        aur_helper="$helper"
+        break
+    fi
+done
+
+if [[ -z "$aur_helper" && $DRY_RUN -eq 0 ]]; then
+    echo ">>> No AUR helper found; bootstrapping yay-bin..."
+    tmp=$(mktemp -d)
+    git clone --depth=1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin"
+    ( cd "$tmp/yay-bin" && makepkg -si --noconfirm )
+    rm -rf "$tmp"
+    aur_helper="yay"
+fi
+
+if [[ -s "$AUR" ]]; then
+    mapfile -t aur_pkgs < <(grep -vE '^\s*(#|$)' "$AUR")
+    echo ">>> AUR (via ${aur_helper:-<none>}): ${#aur_pkgs[@]} packages."
+    if [[ $DRY_RUN -eq 1 ]]; then
+        printf '  would install: %s\n' "${aur_pkgs[@]}"
+    else
+        "$aur_helper" -S --needed --noconfirm "${aur_pkgs[@]}"
+    fi
+fi
+
+echo ">>> Done."

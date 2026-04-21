@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# bootstrap-system
+# Install the minimum packages needed to clone this environment and bring up
+# the migrate / sync tooling on a fresh Arch / Omarchy machine.
 set -euo pipefail
 
 sudo pacman -Syu --noconfirm
@@ -14,4 +17,9 @@ sudo pacman -S --needed --noconfirm \
   github-cli \
   docker \
   docker-buildx \
-  nvm
+  nvm \
+  openssh \
+  rsync
+
+# Make sure sshd is running so sync-projects / bootstrap-new-machine work.
+sudo systemctl enable --now sshd

@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+# bootstrap-new-machine
+# One-shot setup of a fresh Omarchy install to match the source machine.
+#
+# Intended to be run ON THE NEW MACHINE, after:
+#   1. Omarchy finished installing and you are logged in.
+#   2. You have cloned this dotfiles repo to ~/dotfiles:
+#        git clone https://github.com/israel2403/dotfiles.git ~/dotfiles
+#   3. You have an SSH key pair (see step 4 in the README).
+#
+# What it does:
+#   * Installs stow/git/openssh/rsync if missing (minimal prerequisites).
+#   * Enables sshd so you can rsync your projects from the old machine.
+#   * Stows every package in this repo (bash, git, nvim, qutebrowser, ...).
+#   * Replays the package manifest (pacman + AUR).
+#
+# Does NOT pull your ~/projects data — run `sync-projects` from the old
+# machine (or with --pull from here) after this script completes.
+
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+
+if [[ ! -d "$DOTFILES" ]]; then
+    echo "ERROR: $DOTFILES not found. Clone your dotfiles repo first." >&2
+    exit 1
+fi
+
+# -----------------------------------------------------------------------------
+# 1. Minimal prerequisites.
+# -----------------------------------------------------------------------------
+echo ">>> Installing minimal prerequisites..."
+sudo pacman -S --needed --noconfirm \
+    git stow openssh rsync base-devel
+
+# -----------------------------------------------------------------------------
+# 2. Enable sshd so the other machine can reach us.
+# -----------------------------------------------------------------------------
+echo ">>> Enabling sshd..."
+sudo systemctl enable --now sshd
+
+# -----------------------------------------------------------------------------
+# 3. Ensure ~/.ssh exists with proper perms; generate key if missing.
+# -----------------------------------------------------------------------------
+mkdir -p "$HOME/.ssh"
+chmod 700 "$HOME/.ssh"
+if [[ ! -f "$HOME/.ssh/id_ed25519" ]]; then
+    echo ">>> Generating SSH key (~/.ssh/id_ed25519)..."
+    ssh-keygen -t ed25519 -N "" -f "$HOME/.ssh/id_ed25519" -C "$(whoami)@$(hostname)"
+    echo
+    echo ">>> Public key (add this to GitHub / authorized_keys on the old box):"
+    cat "$HOME/.ssh/id_ed25519.pub"
+    echo
+fi
+
+# -----------------------------------------------------------------------------
+# 4. Stow every package that exists in the dotfiles repo.
+#
+#    Safety: before actually linking, we do a dry-run and bail if any proposed
+#    target would land under an Omarchy / machine-specific config path
+#    (hyprland, waybar, monitors.conf, etc.). This guarantees the migration
+#    cannot overwrite per-machine configuration on the new box.
+# -----------------------------------------------------------------------------
+cd "$DOTFILES"
+
+FORBIDDEN_RE='\.config/(hypr|waybar|mako|walker|alacritty|ghostty|kitty|omarchy|sddm|hypridle|hyprlock|hyprpicker|hyprsunset|swayosd|fcitx5|systemd)/|monitors\.conf|input\.conf'
+
+packages=()
+for pkg in */; do
+    pkg="${pkg%/}"
+    case "$pkg" in packages|.git) continue;; esac
+    [[ -d "$pkg" ]] && packages+=("$pkg")
+done
+
+echo ">>> stow dry-run (checking no Omarchy path would be touched)..."
+dry_output=$(stow -n -v --restow --target="$HOME" "${packages[@]}" 2>&1 || true)
+if echo "$dry_output" | grep -E "$FORBIDDEN_RE" >/dev/null; then
+    echo "ERROR: a stow package would write into an Omarchy-owned path:" >&2
+    echo "$dry_output" | grep -E "$FORBIDDEN_RE" >&2
+    echo "Refusing to proceed. Remove the offending files from the repo or add" >&2
+    echo "them to .stow-global-ignore before re-running bootstrap-new-machine." >&2
+    exit 1
+fi
+
+for pkg in "${packages[@]}"; do
+    echo ">>> stow $pkg"
+    stow --restow --target="$HOME" "$pkg"
+done
+
+# -----------------------------------------------------------------------------
+# 5. Replay the package manifest.
+# -----------------------------------------------------------------------------
+if command -v migrate-packages >/dev/null 2>&1; then
+    echo ">>> Running migrate-packages..."
+    migrate-packages
+else
+    echo ">>> migrate-packages not on PATH yet — did you stow 'scripts'?"
+    echo "    You can run it manually: $DOTFILES/scripts/.local/bin/migrate-packages"
+fi
+
+# -----------------------------------------------------------------------------
+# 6. Final hints.
+# -----------------------------------------------------------------------------
+IPS=$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | paste -sd' ,' -)
+
+cat <<EOF
+
+==================================================================
+New machine bootstrap complete.
+
+Next step — copy your projects from the old box. Pick ONE:
+
+  From the OLD machine (push):
+      sync-projects push $(whoami)@${IPS:-<this-machine-ip>}
+
+  Or from HERE (pull), after putting the old machine in known_hosts:
+      sync-projects pull $(whoami)@<OLD-MACHINE-IP>
+
+Also remember to:
+  * Add $HOME/.ssh/id_ed25519.pub to GitHub so you can push from here.
+  * Re-login (or run 'newgrp docker') so docker-group membership applies.
+==================================================================
+EOF
