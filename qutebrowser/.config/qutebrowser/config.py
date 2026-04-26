@@ -16,19 +16,22 @@ c.qt.args = [
 
 # Google blocks qutebrowser's default User-Agent on sign-in pages
 # ("No puedes acceder / this browser or app may not be secure").
-# Spoof a recent Chrome UA on Google domains so sign-in works.
-config.set(
-    "content.headers.user_agent",
-    "Mozilla/5.0 ({os_info}) AppleWebKit/{webkit_version} "
-    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/{webkit_version}",
+#
+# A Chrome UA does NOT work here: Google fingerprints Chromium-based
+# embedded browsers (QtWebEngine) and rejects them. The upstream-
+# recommended workaround is a Firefox UA on accounts.google.com (and
+# other Google domains, so Gmail / Drive / etc. also sign in cleanly).
+#
+# Refs: https://github.com/qutebrowser/qutebrowser/issues/5182
+#       https://github.com/qutebrowser/qutebrowser/issues/8492
+_GOOGLE_FIREFOX_UA = (
+    "Mozilla/5.0 ({os_info}; rv:135.0) Gecko/20100101 Firefox/135.0"
+)
+for _pattern in (
     "https://accounts.google.com/*",
-)
-config.set(
-    "content.headers.user_agent",
-    "Mozilla/5.0 ({os_info}) AppleWebKit/{webkit_version} "
-    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/{webkit_version}",
     "https://*.google.com/*",
-)
+):
+    config.set("content.headers.user_agent", _GOOGLE_FIREFOX_UA, _pattern)
 
 c.auto_save.session = True
 c.session.lazy_restore = True
@@ -62,6 +65,18 @@ c.content.tls.certificate_errors = "ask-block-thirdparty"
 # (H / L are left to their defaults: back / forward in browser history.)
 config.bind("<Alt-l>", "tab-next")
 config.bind("<Alt-h>", "tab-prev")
+
+# Exit insert mode and blur the focused element so normal-mode keybindings
+# (j/k scrolling, etc.) work immediately without a second Esc.
+# - blur()           removes focus from the active input
+# - body.focus()     explicitly hands focus to the document body
+# Both combined handle simple inputs and complex SPAs (ChatGPT, etc.).
+# mode='insert' keeps the default <Escape> behaviour in normal mode intact.
+config.bind(
+    "<Escape>",
+    "mode-leave ;; jseval --quiet (()=>{document.activeElement.blur();document.body.focus()})()" ,
+    mode="insert",
+)
 
 # Dark Reader (greasemonkey/darkreader.user.js):
 #   ,d  -> toggle on the current page

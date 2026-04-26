@@ -144,7 +144,7 @@ return {
     opts = {
       spec = {
         { "<leader>J", group = "Java", icon = "" },
-        { "<leader>Jn", create_java_type, desc = "New Java type" },
+        { "<leader>Jc", create_java_type, desc = "Create Java type" },
       },
     },
   },

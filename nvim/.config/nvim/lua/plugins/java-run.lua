@@ -23,10 +23,10 @@ local function get_main_class()
 
   local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
 
-  -- Extract package name
+  -- Extract package name (Java identifiers can contain underscores; Lua's %w does not match _)
   local pkg = nil
   for _, line in ipairs(lines) do
-    pkg = line:match("^%s*package%s+([%w%.]+)%s*;")
+    pkg = line:match("^%s*package%s+([%w_%.]+)%s*;")
     if pkg then
       break
     end
@@ -40,7 +40,7 @@ local function get_main_class()
 
   for _, line in ipairs(lines) do
     -- Detect class/interface/enum declarations
-    local class_name = line:match("class%s+(%w+)") or line:match("interface%s+(%w+)") or line:match("enum%s+(%w+)")
+    local class_name = line:match("class%s+([%w_]+)") or line:match("interface%s+([%w_]+)") or line:match("enum%s+([%w_]+)")
     if class_name then
       table.insert(class_stack, { name = class_name, depth = brace_depth })
     end

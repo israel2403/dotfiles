@@ -1,0 +1,80 @@
+#!/usr/bin/env bash
+# bootstrap-zsh — install zsh + Oh My Zsh + Powerlevel10k + plugins.
+# Safe to re-run: every step checks for existing state first.
+set -euo pipefail
+
+echo "==> bootstrap-zsh"
+
+# ---------------------------------------------------------------------------
+# 1. Ensure zsh is installed
+# ---------------------------------------------------------------------------
+if ! command -v zsh >/dev/null 2>&1; then
+  echo "--> installing zsh"
+  sudo pacman -S --needed --noconfirm zsh
+else
+  echo "--> zsh already installed ($(zsh --version))"
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Install Oh My Zsh (preserve any existing .zshrc)
+# ---------------------------------------------------------------------------
+ZSH_DIR="$HOME/.oh-my-zsh"
+if [[ ! -d "$ZSH_DIR" ]]; then
+  echo "--> installing Oh My Zsh"
+  RUNZSH=no CHSH=no KEEP_ZSHRC=yes \
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+else
+  echo "--> Oh My Zsh already installed"
+fi
+
+ZSH_CUSTOM="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
+
+# ---------------------------------------------------------------------------
+# 3. Install Powerlevel10k theme
+# ---------------------------------------------------------------------------
+P10K_DIR="$ZSH_CUSTOM/themes/powerlevel10k"
+if [[ ! -d "$P10K_DIR" ]]; then
+  echo "--> cloning powerlevel10k"
+  git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR"
+else
+  echo "--> powerlevel10k already present (updating)"
+  git -C "$P10K_DIR" pull --ff-only || true
+fi
+
+# ---------------------------------------------------------------------------
+# 4. Install external plugins
+# ---------------------------------------------------------------------------
+install_plugin() {
+  local repo="$1" name
+  name="$(basename "$repo")"
+  local dir="$ZSH_CUSTOM/plugins/$name"
+  if [[ ! -d "$dir" ]]; then
+    echo "--> cloning $name"
+    git clone --depth=1 "https://github.com/$repo" "$dir"
+  else
+    echo "--> $name already present (updating)"
+    git -C "$dir" pull --ff-only || true
+  fi
+}
+
+install_plugin "zsh-users/zsh-autosuggestions"
+install_plugin "zsh-users/zsh-syntax-highlighting"
+install_plugin "zsh-users/zsh-completions"
+
+# ---------------------------------------------------------------------------
+# 5. Set zsh as the default login shell
+# ---------------------------------------------------------------------------
+ZSH_BIN="$(command -v zsh)"
+if [[ "${SHELL:-}" != "$ZSH_BIN" ]]; then
+  echo "--> changing login shell to $ZSH_BIN"
+  chsh -s "$ZSH_BIN"
+  echo "    (log out and back in for the change to take effect)"
+else
+  echo "--> login shell is already zsh"
+fi
+
+echo
+echo "✔ zsh environment ready."
+echo "  Next steps:"
+echo "    1. Open a new terminal (or run: exec zsh)"
+echo "    2. Run:  p10k configure    # to customize the Powerlevel10k prompt"

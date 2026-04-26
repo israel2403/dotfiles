@@ -2,6 +2,12 @@
 # fff extensions — sourced by ~/.bashrc via profile.d
 # Dependencies: fff, fzf, fd, rg, bat, nvim, tmux, imv, zathura, trash-cli, xclip
 
+# This file uses bash-specific syntax (bind -x, export -f, ${var,,}).
+# Skip it when sourced from zsh so startup stays clean.
+if [ -n "${ZSH_VERSION:-}" ]; then
+  return 0
+fi
+
 # ── Source fff config ──────────────────────────────────────────────
 [ -f ~/.config/fff/fff.conf ] && source ~/.config/fff/fff.conf
 

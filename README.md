@@ -52,7 +52,15 @@ stow -n -v <package>
 
 ### zsh
 
-- `.zshrc` — Same as bash, with zsh-compatible glob handling `(N)`
+- `.zshrc` — Oh My Zsh + **Powerlevel10k** theme + productivity plugins
+  (`git`, `docker`, `docker-compose`, `sudo`, `archlinux`, `nvm`, `node`,
+  `npm`, `fzf`, `dirhistory`, `extract`, `systemd`, `colored-man-pages`,
+  `zsh-autosuggestions`, `zsh-completions`, `zsh-syntax-highlighting`).
+  Provides macOS-style grid menu completion (arrow-key selectable, case
+  insensitive, colorized).
+- Install with `bootstrap-zsh` (installs zsh + OMZ + p10k + external plugins
+  and sets zsh as the login shell).
+- After first launch, run `p10k configure` to customize the prompt.
 
 ### git
 
@@ -82,6 +90,7 @@ Bootstrap and setup scripts installed to `~/.local/bin/`.
 - `bootstrap-system` — Core packages via pacman (+ `stow`, `openssh`, `rsync`, enables `sshd`)
 - `bootstrap-docker` — Docker service and group setup
 - `bootstrap-git` — Git identity and project directories
+- `bootstrap-zsh` — Install zsh + Oh My Zsh + Powerlevel10k + plugins and set zsh as login shell
 - `bootstrap-new-machine` — One-shot clone of this environment onto a fresh Omarchy install
 - `migrate-packages` — Replay `packages/{pacman,aur}.txt` on the current machine
 - `sync-projects` — `rsync` over SSH to push/pull `~/projects/` between machines
@@ -180,6 +189,7 @@ dotfiles/
 │       ├── bootstrap-git
 │       ├── bootstrap-new-machine
 │       ├── bootstrap-system
+│       ├── bootstrap-zsh
 │       ├── doctor-dev-env
 │       ├── migrate-packages
 │       ├── setup-angular

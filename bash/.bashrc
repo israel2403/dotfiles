@@ -29,3 +29,7 @@ alias dcd='docker compose down'
 
 # Re-enable command hashing (omarchy disables it for mise init, not needed after)
 set -h
+
+#THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
+export SDKMAN_DIR="/home/isra/.sdkman"
+[[ -s "/home/isra/.sdkman/bin/sdkman-init.sh" ]] && source "/home/isra/.sdkman/bin/sdkman-init.sh"
