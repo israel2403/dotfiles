@@ -1,0 +1,166 @@
+#!/usr/bin/env bash
+# dotfiles-sync
+# One-shot idempotent sync between ~/dotfiles and the local box.
+#
+# What it does, in order:
+#   1. Pulls the latest commits from origin (auto-stashes a dirty tree first
+#      and pops the stash afterwards). On merge conflicts the LOCAL side wins
+#      ('-X ours'), matching the convention used by this repo.
+#   2. Re-stows every package in the repo (`stow --restow`) so newly added
+#      files appear and any drifted symlinks get re-pointed.
+#   3. Sanity-checks against the .stow-global-ignore allow-list before stowing,
+#      so an accidentally committed Omarchy/machine-specific file can't clobber
+#      a real config.
+#   4. Re-runs the idempotent helpers: link-omarchy-theme, migrate-packages,
+#      bootstrap-zsh.
+#   5. Reloads Hyprland if it is running, so window rules/keybindings take
+#      effect immediately without a relogin.
+#
+# Use this command both for FIRST-TIME ongoing usage and DAILY updates --
+# every step is a no-op if there's nothing to do.
+#
+# Usage:
+#   dotfiles-sync           # full sync
+#   dotfiles-sync --dry-run # show what would change, no writes
+#   dotfiles-sync --no-pull # skip git pull (useful when offline)
+#
+# For a brand-new machine, run `bootstrap-new-machine` ONCE first; afterwards
+# `dotfiles-sync` is the only command you ever need.
+
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+
+DRY_RUN=0
+DO_PULL=1
+for arg in "$@"; do
+    case "$arg" in
+        -n|--dry-run) DRY_RUN=1 ;;
+        --no-pull)    DO_PULL=0 ;;
+        -h|--help)
+            sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
+            exit 0
+            ;;
+        *) echo "unknown flag: $arg" >&2; exit 2 ;;
+    esac
+done
+
+run() {
+    if [[ $DRY_RUN -eq 1 ]]; then
+        echo "DRY: $*"
+    else
+        eval "$@"
+    fi
+}
+
+if [[ ! -d "$DOTFILES/.git" ]]; then
+    echo "ERROR: $DOTFILES is not a git checkout." >&2
+    echo "       For a fresh box, run bootstrap-new-machine first." >&2
+    exit 1
+fi
+
+cd "$DOTFILES"
+
+# -----------------------------------------------------------------------------
+# 1. git pull (auto-stash, prefer-local on conflicts).
+# -----------------------------------------------------------------------------
+if [[ $DO_PULL -eq 1 ]]; then
+    echo ">>> git fetch"
+    run "git fetch --prune origin"
+
+    DIRTY=0
+    if ! git diff-index --quiet HEAD -- 2>/dev/null \
+       || [[ -n "$(git ls-files --others --exclude-standard)" ]]; then
+        DIRTY=1
+        echo ">>> stashing local changes (auto-stash)"
+        run "git stash push -u -m 'dotfiles-sync auto-stash $(date -Iseconds)'"
+    fi
+
+    echo ">>> git pull --no-rebase -X ours (local wins on conflict)"
+    run "git pull --no-rebase -X ours --no-edit origin master"
+
+    if [[ $DIRTY -eq 1 ]]; then
+        echo ">>> restoring stashed local changes"
+        if [[ $DRY_RUN -eq 0 ]]; then
+            git stash pop || {
+                echo "WARN: stash pop hit a conflict. Resolve manually:" >&2
+                echo "      git status   # see conflicted files"          >&2
+                echo "      git stash list" >&2
+            }
+        fi
+    fi
+else
+    echo ">>> --no-pull: skipping git pull"
+fi
+
+# -----------------------------------------------------------------------------
+# 2/3. stow every package, with an Omarchy-path safety net.
+# -----------------------------------------------------------------------------
+FORBIDDEN_RE='\.config/(hypr|waybar|mako|walker|alacritty|ghostty|kitty|omarchy|sddm|hypridle|hyprlock|hyprpicker|hyprsunset|swayosd|fcitx5|systemd)/|monitors\.conf|input\.conf'
+
+packages=()
+for pkg in */; do
+    pkg="${pkg%/}"
+    case "$pkg" in packages|.git) continue;; esac
+    [[ -d "$pkg" ]] && packages+=("$pkg")
+done
+
+echo ">>> stow dry-run sanity check (${#packages[@]} packages)"
+for pkg in "${packages[@]}"; do
+    pkg_dry=$(stow -n -v --restow --target="$HOME" "$pkg" 2>&1 || true)
+    if echo "$pkg_dry" | grep -E "$FORBIDDEN_RE" >/dev/null; then
+        # A package may intentionally whitelist a protected path by carrying
+        # a .stow-local-ignore (which overrides .stow-global-ignore for THAT
+        # package only). Trust those packages.
+        if [[ -f "$DOTFILES/$pkg/.stow-local-ignore" ]]; then
+            continue
+        fi
+        echo "ERROR: stow package '$pkg' would write into a protected Omarchy path:" >&2
+        echo "$pkg_dry" | grep -E "$FORBIDDEN_RE" | sed 's/^/  /' >&2
+        echo "Add the path to .stow-global-ignore, drop the offending file, or" >&2
+        echo "give the package a .stow-local-ignore that whitelists it intentionally." >&2
+        exit 1
+    fi
+done
+
+for pkg in "${packages[@]}"; do
+    echo ">>> stow --restow $pkg"
+    if [[ $DRY_RUN -eq 1 ]]; then
+        stow -n -v --restow --target="$HOME" "$pkg" || true
+    else
+        stow --restow --target="$HOME" "$pkg"
+    fi
+done
+
+# -----------------------------------------------------------------------------
+# 4. Idempotent helpers.
+# -----------------------------------------------------------------------------
+if command -v link-omarchy-theme >/dev/null 2>&1; then
+    echo ">>> link-omarchy-theme"
+    run "link-omarchy-theme"
+fi
+
+if command -v migrate-packages >/dev/null 2>&1; then
+    echo ">>> migrate-packages"
+    if [[ $DRY_RUN -eq 1 ]]; then
+        run "migrate-packages --dry-run"
+    else
+        run "migrate-packages"
+    fi
+fi
+
+if command -v bootstrap-zsh >/dev/null 2>&1; then
+    echo ">>> bootstrap-zsh"
+    run "bootstrap-zsh"
+fi
+
+# -----------------------------------------------------------------------------
+# 5. Reload Hyprland if it's running.
+# -----------------------------------------------------------------------------
+if command -v hyprctl >/dev/null 2>&1 && pgrep -x Hyprland >/dev/null 2>&1; then
+    echo ">>> hyprctl reload"
+    run "hyprctl reload >/dev/null"
+fi
+
+echo
+echo "✔ dotfiles-sync complete."

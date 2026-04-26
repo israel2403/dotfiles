@@ -73,14 +73,22 @@ for pkg in */; do
 done
 
 echo ">>> stow dry-run (checking no Omarchy path would be touched)..."
-dry_output=$(stow -n -v --restow --target="$HOME" "${packages[@]}" 2>&1 || true)
-if echo "$dry_output" | grep -E "$FORBIDDEN_RE" >/dev/null; then
-    echo "ERROR: a stow package would write into an Omarchy-owned path:" >&2
-    echo "$dry_output" | grep -E "$FORBIDDEN_RE" >&2
-    echo "Refusing to proceed. Remove the offending files from the repo or add" >&2
-    echo "them to .stow-global-ignore before re-running bootstrap-new-machine." >&2
-    exit 1
-fi
+for pkg in "${packages[@]}"; do
+    pkg_dry=$(stow -n -v --restow --target="$HOME" "$pkg" 2>&1 || true)
+    if echo "$pkg_dry" | grep -E "$FORBIDDEN_RE" >/dev/null; then
+        # Packages with a .stow-local-ignore intentionally override the
+        # global ignore for one or more protected paths. Trust those.
+        if [[ -f "$DOTFILES/$pkg/.stow-local-ignore" ]]; then
+            continue
+        fi
+        echo "ERROR: stow package '$pkg' would write into an Omarchy-owned path:" >&2
+        echo "$pkg_dry" | grep -E "$FORBIDDEN_RE" | sed 's/^/  /' >&2
+        echo "Refusing to proceed. Remove the offending files from the repo, add" >&2
+        echo "them to .stow-global-ignore, or give the package a .stow-local-ignore" >&2
+        echo "that whitelists the path intentionally." >&2
+        exit 1
+    fi
+done
 
 for pkg in "${packages[@]}"; do
     echo ">>> stow $pkg"
