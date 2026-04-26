@@ -72,6 +72,22 @@ if [[ ! -d "$DOTFILES/.git" ]]; then
     exit 1
 fi
 
+# Always tell Hyprland to reload on exit -- even if a later step (e.g.
+# migrate-packages hitting a pacman conflict) fails. Stow may have unlinked
+# and re-linked config files mid-run, and Hyprland's inotify auto-reload can
+# fire while a file is briefly missing, leaving the running compositor in a
+# transient "Config error: source= globbing error: found no match" state.
+# A final hyprctl reload clears that, so we install it as an EXIT trap.
+final_hyprctl_reload() {
+    if [[ $DRY_RUN -eq 0 ]] \
+       && command -v hyprctl >/dev/null 2>&1 \
+       && pgrep -x Hyprland >/dev/null 2>&1; then
+        echo ">>> hyprctl reload (final)"
+        hyprctl reload >/dev/null 2>&1 || true
+    fi
+}
+trap final_hyprctl_reload EXIT
+
 cd "$DOTFILES"
 
 # -----------------------------------------------------------------------------
@@ -268,12 +284,8 @@ if [[ -n "$BOOTSTRAP_ZSH" ]]; then
 fi
 
 # -----------------------------------------------------------------------------
-# 5. Reload Hyprland if it's running.
+# 5. Final Hyprland reload is handled by the EXIT trap installed near the top.
 # -----------------------------------------------------------------------------
-if command -v hyprctl >/dev/null 2>&1 && pgrep -x Hyprland >/dev/null 2>&1; then
-    echo ">>> hyprctl reload"
-    run "hyprctl reload >/dev/null"
-fi
 
 echo
 echo "✔ dotfiles-sync complete."
