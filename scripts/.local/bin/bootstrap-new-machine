@@ -108,24 +108,37 @@ fi
 
 # -----------------------------------------------------------------------------
 # 6. Final hints.
+#    List reachable IPv4 addresses, excluding loopback and virtual bridges
+#    (docker0, br-*, virbr*, veth*, tun*, tap*, wg*) so the user can see at a
+#    glance which IP the other machine should SSH to.
 # -----------------------------------------------------------------------------
-IPS=$(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | cut -d/ -f1 | paste -sd' ,' -)
+mapfile -t IP_LINES < <(
+    ip -4 -o addr show scope global 2>/dev/null \
+        | awk '{print $2, $4}' \
+        | grep -vE '^(docker|br-|virbr|veth|tun|tap|wg)' \
+        | awk '{split($2,a,"/"); printf "%-10s %s\n", $1, a[1]}'
+)
 
-cat <<EOF
-
-==================================================================
-New machine bootstrap complete.
-
-Next step — copy your projects from the old box. Pick ONE:
-
-  From the OLD machine (push):
-      sync-projects push $(whoami)@${IPS:-<this-machine-ip>}
-
-  Or from HERE (pull), after putting the old machine in known_hosts:
-      sync-projects pull $(whoami)@<OLD-MACHINE-IP>
-
-Also remember to:
-  * Add $HOME/.ssh/id_ed25519.pub to GitHub so you can push from here.
-  * Re-login (or run 'newgrp docker') so docker-group membership applies.
-==================================================================
-EOF
+echo
+echo "=================================================================="
+echo "New machine bootstrap complete."
+echo
+echo "Reachable IPv4 addresses on this host:"
+if [[ ${#IP_LINES[@]} -eq 0 ]]; then
+    echo "  (none detected — check your network connection)"
+else
+    for line in "${IP_LINES[@]}"; do echo "  $line"; done
+fi
+echo
+echo "Next step — copy your projects from the OLD box. Pick ONE:"
+echo
+echo "  From the OLD machine (push):"
+echo "      sync-projects push $(whoami)@<one-of-the-IPs-above>"
+echo
+echo "  Or from HERE (pull), after the old box trusts this one:"
+echo "      sync-projects pull $(whoami)@<OLD-MACHINE-IP>"
+echo
+echo "Also:"
+echo "  * Add $HOME/.ssh/id_ed25519.pub to GitHub so you can push from here."
+echo "  * Re-login (or run 'newgrp docker') so docker-group membership applies."
+echo "=================================================================="
