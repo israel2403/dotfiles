@@ -1,0 +1,9 @@
+# Local stow ignore for the `hypr` package.
+# Presence of this file overrides .stow-global-ignore for this package only,
+# allowing ~/.config/hypr/bindings.conf to be stowed while the global ignore
+# continues to protect every other package from leaking hypr configs.
+#
+# Defensive: keep machine-specific hardware configs out even if they ever
+# end up under hypr/.config/hypr/ by mistake.
+monitors\.conf
+input\.conf
