@@ -20,9 +20,16 @@
 # every step is a no-op if there's nothing to do.
 #
 # Usage:
-#   dotfiles-sync           # full sync
+#   dotfiles-sync           # full sync (safe: divergent files are backed up)
+#   dotfiles-sync --force   # repo wins, no backup -- clobber local divergence
 #   dotfiles-sync --dry-run # show what would change, no writes
 #   dotfiles-sync --no-pull # skip git pull (useful when offline)
+#
+# By default, when a target file under $HOME differs from the repo it is moved
+# to <path>.pre-stow.<unix-ts> before stow takes over, so nothing is silently
+# lost. Pass --force when this box is fully untrusted vs the repo (e.g. you've
+# verified the source-of-truth box is correct and want to clobber whatever the
+# other box has) -- divergent files are deleted with no backup.
 #
 # For a brand-new machine, run `bootstrap-new-machine` ONCE first; afterwards
 # `dotfiles-sync` is the only command you ever need.
@@ -33,17 +40,23 @@ DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 
 DRY_RUN=0
 DO_PULL=1
+FORCE=0
 for arg in "$@"; do
     case "$arg" in
         -n|--dry-run) DRY_RUN=1 ;;
         --no-pull)    DO_PULL=0 ;;
+        -f|--force)   FORCE=1 ;;
         -h|--help)
-            sed -n '2,30p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '2,40p' "$0" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
         *) echo "unknown flag: $arg" >&2; exit 2 ;;
     esac
 done
+
+if [[ $FORCE -eq 1 ]]; then
+    echo "!! --force enabled: divergent local files will be DELETED, not backed up."
+fi
 
 run() {
     if [[ $DRY_RUN -eq 1 ]]; then
@@ -180,6 +193,8 @@ preflight_resolve_conflicts() {
             fi
             if cmp -s "$src" "$tgt"; then
                 _do_rm "dropped identical pre-existing file: ~${tgt#$HOME}" "$tgt"
+            elif [[ $FORCE -eq 1 ]]; then
+                _do_rm "force-removed divergent file (no backup): ~${tgt#$HOME}" "$tgt"
             else
                 local backup="${tgt}.pre-stow.${PRESTOW_TS}"
                 _do_mv "backed up divergent file: ~${tgt#$HOME} -> ~${backup#$HOME}" "$tgt" "$backup"

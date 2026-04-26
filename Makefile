@@ -3,6 +3,7 @@
 #
 #     make            # alias for `make sync`
 #     make sync       # pull + restow + idempotent helpers (DAILY command)
+#     make force-sync # like `sync` but DELETES divergent local files (no backup)
 #     make bootstrap  # full new-machine bootstrap (FIRST-TIME ONLY)
 #     make stow       # stow every package, no git pull, no helpers
 #     make restow     # stow --restow every package (refresh links)
@@ -26,13 +27,16 @@ PACKAGES := $(shell find $(DOTFILES) -mindepth 1 -maxdepth 1 -type d \
             -printf '%f ')
 
 .DEFAULT_GOAL := sync
-.PHONY: sync bootstrap stow restow unstow status dry-run help
+.PHONY: sync force-sync bootstrap stow restow unstow status dry-run help
 
 help:
-	@sed -n '2,17p' $(firstword $(MAKEFILE_LIST)) | sed 's/^# \{0,1\}//'
+	@sed -n '2,18p' $(firstword $(MAKEFILE_LIST)) | sed 's/^# \{0,1\}//'
 
 sync:
 	@$(SCRIPTS)/dotfiles-sync
+
+force-sync:
+	@$(SCRIPTS)/dotfiles-sync --force
 
 dry-run:
 	@$(SCRIPTS)/dotfiles-sync --dry-run
