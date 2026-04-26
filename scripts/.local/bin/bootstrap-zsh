@@ -17,7 +17,18 @@ fi
 
 # ---------------------------------------------------------------------------
 # 2. Install Oh My Zsh (preserve any existing .zshrc)
+#    KEEP_ZSHRC=yes only takes effect if ~/.zshrc EXISTS when the OMZ installer
+#    runs; otherwise OMZ writes a template ~/.zshrc that would clobber our
+#    stowed config. Bail out early with a clear message if the user forgot to
+#    `stow zsh` first.
 # ---------------------------------------------------------------------------
+if [[ ! -e "$HOME/.zshrc" ]]; then
+  echo "ERROR: ~/.zshrc is missing." >&2
+  echo "       Run \`stow zsh\` (or bootstrap-new-machine) FIRST so the" >&2
+  echo "       Oh My Zsh installer keeps our managed ~/.zshrc." >&2
+  exit 1
+fi
+
 ZSH_DIR="$HOME/.oh-my-zsh"
 if [[ ! -d "$ZSH_DIR" ]]; then
   echo "--> installing Oh My Zsh"
@@ -75,6 +86,9 @@ fi
 
 echo
 echo "✔ zsh environment ready."
-echo "  Next steps:"
-echo "    1. Open a new terminal (or run: exec zsh)"
-echo "    2. Run:  p10k configure    # to customize the Powerlevel10k prompt"
+echo "  Next step: open a new terminal (or run: exec zsh)."
+if [[ -e "$HOME/.p10k.zsh" ]]; then
+  echo "  (Powerlevel10k config is stowed at ~/.p10k.zsh — first-run wizard skipped.)"
+else
+  echo "  Tip: run \`p10k configure\` to generate ~/.p10k.zsh."
+fi

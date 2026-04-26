@@ -107,6 +107,20 @@ else
 fi
 
 # -----------------------------------------------------------------------------
+# 5b. Bootstrap zsh / Oh My Zsh / Powerlevel10k / plugins.
+#     Runs AFTER stow so ~/.zshrc and ~/.p10k.zsh are already symlinks; this
+#     means the OMZ installer keeps our config (KEEP_ZSHRC=yes), and the
+#     Powerlevel10k first-run wizard is skipped because ~/.p10k.zsh exists.
+# -----------------------------------------------------------------------------
+if command -v bootstrap-zsh >/dev/null 2>&1; then
+    echo ">>> Running bootstrap-zsh..."
+    bootstrap-zsh
+else
+    echo ">>> bootstrap-zsh not on PATH yet — did you stow 'scripts'?"
+    echo "    You can run it manually: $DOTFILES/scripts/.local/bin/bootstrap-zsh"
+fi
+
+# -----------------------------------------------------------------------------
 # 6. Final hints.
 #    List reachable IPv4 addresses, excluding loopback and virtual bridges
 #    (docker0, br-*, virbr*, veth*, tun*, tap*, wg*) so the user can see at a
