@@ -1,9 +1,13 @@
 # Local stow ignore for the `hypr` package.
 # Presence of this file overrides .stow-global-ignore for this package only,
-# allowing ~/.config/hypr/bindings.conf to be stowed while the global ignore
-# continues to protect every other package from leaking hypr configs.
+# allowing the hypr config files committed under this package to be stowed
+# while the global ignore continues to protect every other package from
+# leaking hypr configs.
 #
-# Defensive: keep machine-specific hardware configs out even if they ever
-# end up under hypr/.config/hypr/ by mistake.
+# Defensive: keep TRULY machine-specific hardware configs out even if they
+# ever end up under hypr/.config/hypr/ by mistake. monitors.conf describes
+# physical displays per box, so it stays per-machine. input.conf used to be
+# in this list too, but its current contents (kb_layout, kb_options, repeat
+# rate, touchpad scroll factor, terminal scroll windowrules) are user
+# preferences shared across machines, so it is now stow-managed.
 monitors\.conf
-input\.conf
