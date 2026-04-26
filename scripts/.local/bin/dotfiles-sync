@@ -123,75 +123,90 @@ for pkg in "${packages[@]}"; do
     fi
 done
 
-# Remove pre-existing ABSOLUTE symlinks under $HOME that already point into
-# this repo. Stow only recognises its own RELATIVE symlinks as "owned"; an
-# absolute symlink (e.g. created by an old `ln -s ~/dotfiles/...` step or by a
-# tool that auto-installs into $HOME) makes stow refuse with
-#   "existing target is not owned by stow"
-# even though the link points at the same file. Replacing them with stow's
-# own relative symlinks is safe and idempotent.
-preflight_clean_absolute_symlinks() {
+# Resolve pre-existing conflicts that would make stow abort. Two kinds of
+# blocker, both common when replicating dotfiles to a box that already had a
+# manual setup or where another tool wrote default configs:
+#
+#   1. Absolute symlinks under $HOME pointing into ~/dotfiles. Stow only
+#      recognises its own RELATIVE symlinks as "owned"; absolute ones cause
+#      "existing target is not owned by stow" even though they point at the
+#      same file. Replace them with stow's relative symlinks.
+#   2. Regular files at the target path (e.g. ~/.config/hypr/bindings.conf
+#      written by Omarchy's defaults). Stow refuses to clobber them. We
+#      compare contents with the repo: if identical, drop the local copy; if
+#      they differ, move the local copy to <path>.pre-stow.<timestamp> so
+#      nothing is silently lost, then let stow take over.
+#
+# Stow's own relative symlinks are explicitly left alone, so re-running on a
+# clean box is a no-op.
+PRESTOW_TS=$(date +%s)
+preflight_resolve_conflicts() {
     local pkg=$1
     local pkg_dir="$DOTFILES/$pkg"
-    local cleaned=0
 
-    # Only act on truly ABSOLUTE symlinks (link value starts with '/'). Stow's
-    # own RELATIVE symlinks also resolve into $DOTFILES, but they're owned by
-    # stow and must be left alone -- otherwise we'd churn every file every run.
     _is_absolute_repo_symlink() {
         local p=$1
         [[ -L "$p" ]] || return 1
         local link_value
         link_value=$(readlink "$p" 2>/dev/null || true)
-        [[ "$link_value" == /* ]] || return 1   # not absolute -> not ours to touch
+        [[ "$link_value" == /* ]] || return 1
         local resolved
         resolved=$(readlink -f "$p" 2>/dev/null || true)
         [[ "$resolved" == "$DOTFILES"/* ]]
     }
 
-    # 1. Direct file targets that exist as absolute symlinks into the repo.
+    _do_rm() {
+        if [[ $DRY_RUN -eq 1 ]]; then echo "    DRY: $1"; else rm -f "$2"; echo "    $1"; fi
+    }
+    _do_mv() {
+        if [[ $DRY_RUN -eq 1 ]]; then echo "    DRY: $1"; else mv "$2" "$3"; echo "    $1"; fi
+    }
+
+    # Per-file: existing absolute repo symlink OR existing regular file.
     while IFS= read -r -d '' src; do
         local rel="${src#$pkg_dir/}"
         local tgt="$HOME/$rel"
-        _is_absolute_repo_symlink "$tgt" || continue
-        if [[ $DRY_RUN -eq 1 ]]; then
-            echo "    DRY: would unlink absolute symlink ~${tgt#$HOME}"
-        else
-            rm -f "$tgt"
-            echo "    cleaned absolute symlink: ~${tgt#$HOME}"
+        if _is_absolute_repo_symlink "$tgt"; then
+            _do_rm "cleaned absolute symlink: ~${tgt#$HOME}" "$tgt"
+        elif [[ -f "$tgt" && ! -L "$tgt" ]]; then
+            # Skip files that are ALREADY reached via a tree-folded parent
+            # symlink into the repo (e.g. ~/.config/fff -> ~/dotfiles/.../fff).
+            # Such files aren't symlinks themselves but their canonical path is
+            # inside $DOTFILES, meaning stow already manages them via the parent.
+            local resolved
+            resolved=$(readlink -f "$tgt" 2>/dev/null || true)
+            if [[ "$resolved" == "$DOTFILES"/* ]]; then
+                continue
+            fi
+            if cmp -s "$src" "$tgt"; then
+                _do_rm "dropped identical pre-existing file: ~${tgt#$HOME}" "$tgt"
+            else
+                local backup="${tgt}.pre-stow.${PRESTOW_TS}"
+                _do_mv "backed up divergent file: ~${tgt#$HOME} -> ~${backup#$HOME}" "$tgt" "$backup"
+            fi
         fi
-        cleaned=$((cleaned+1))
     done < <(find "$pkg_dir" -type f -print0)
 
-    # 2. Parent dirs that are themselves absolute symlinks into the repo
-    #    (e.g. ~/.config/fff -> ~/dotfiles/fff/.config/fff). One such link
-    #    shadows every file inside it, so we only need to walk parents of
-    #    the package's first file.
+    # Parent dirs that are themselves absolute symlinks into the repo, e.g.
+    # ~/.config/fff -> ~/dotfiles/fff/.config/fff -- one such link shadows
+    # every file inside it.
     while IFS= read -r -d '' src; do
         local rel="${src#$pkg_dir/}"
         local parent
         parent=$(dirname "$HOME/$rel")
         while [[ "$parent" != "$HOME" && "$parent" != "/" && -e "$parent" ]]; do
             if _is_absolute_repo_symlink "$parent"; then
-                if [[ $DRY_RUN -eq 1 ]]; then
-                    echo "    DRY: would unlink absolute symlink dir ~${parent#$HOME}"
-                else
-                    rm -f "$parent"
-                    echo "    cleaned absolute symlink (dir): ~${parent#$HOME}"
-                fi
-                cleaned=$((cleaned+1))
+                _do_rm "cleaned absolute symlink (dir): ~${parent#$HOME}" "$parent"
                 break
             fi
             parent=$(dirname "$parent")
         done
     done < <(find "$pkg_dir" -type f -print0)
-
-    return 0
 }
 
 for pkg in "${packages[@]}"; do
     echo ">>> stow --restow $pkg"
-    preflight_clean_absolute_symlinks "$pkg"
+    preflight_resolve_conflicts "$pkg"
     if [[ $DRY_RUN -eq 1 ]]; then
         stow -n -v --restow --target="$HOME" "$pkg" || true
     else
