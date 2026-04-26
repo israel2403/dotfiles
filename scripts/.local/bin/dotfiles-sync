@@ -123,8 +123,75 @@ for pkg in "${packages[@]}"; do
     fi
 done
 
+# Remove pre-existing ABSOLUTE symlinks under $HOME that already point into
+# this repo. Stow only recognises its own RELATIVE symlinks as "owned"; an
+# absolute symlink (e.g. created by an old `ln -s ~/dotfiles/...` step or by a
+# tool that auto-installs into $HOME) makes stow refuse with
+#   "existing target is not owned by stow"
+# even though the link points at the same file. Replacing them with stow's
+# own relative symlinks is safe and idempotent.
+preflight_clean_absolute_symlinks() {
+    local pkg=$1
+    local pkg_dir="$DOTFILES/$pkg"
+    local cleaned=0
+
+    # Only act on truly ABSOLUTE symlinks (link value starts with '/'). Stow's
+    # own RELATIVE symlinks also resolve into $DOTFILES, but they're owned by
+    # stow and must be left alone -- otherwise we'd churn every file every run.
+    _is_absolute_repo_symlink() {
+        local p=$1
+        [[ -L "$p" ]] || return 1
+        local link_value
+        link_value=$(readlink "$p" 2>/dev/null || true)
+        [[ "$link_value" == /* ]] || return 1   # not absolute -> not ours to touch
+        local resolved
+        resolved=$(readlink -f "$p" 2>/dev/null || true)
+        [[ "$resolved" == "$DOTFILES"/* ]]
+    }
+
+    # 1. Direct file targets that exist as absolute symlinks into the repo.
+    while IFS= read -r -d '' src; do
+        local rel="${src#$pkg_dir/}"
+        local tgt="$HOME/$rel"
+        _is_absolute_repo_symlink "$tgt" || continue
+        if [[ $DRY_RUN -eq 1 ]]; then
+            echo "    DRY: would unlink absolute symlink ~${tgt#$HOME}"
+        else
+            rm -f "$tgt"
+            echo "    cleaned absolute symlink: ~${tgt#$HOME}"
+        fi
+        cleaned=$((cleaned+1))
+    done < <(find "$pkg_dir" -type f -print0)
+
+    # 2. Parent dirs that are themselves absolute symlinks into the repo
+    #    (e.g. ~/.config/fff -> ~/dotfiles/fff/.config/fff). One such link
+    #    shadows every file inside it, so we only need to walk parents of
+    #    the package's first file.
+    while IFS= read -r -d '' src; do
+        local rel="${src#$pkg_dir/}"
+        local parent
+        parent=$(dirname "$HOME/$rel")
+        while [[ "$parent" != "$HOME" && "$parent" != "/" && -e "$parent" ]]; do
+            if _is_absolute_repo_symlink "$parent"; then
+                if [[ $DRY_RUN -eq 1 ]]; then
+                    echo "    DRY: would unlink absolute symlink dir ~${parent#$HOME}"
+                else
+                    rm -f "$parent"
+                    echo "    cleaned absolute symlink (dir): ~${parent#$HOME}"
+                fi
+                cleaned=$((cleaned+1))
+                break
+            fi
+            parent=$(dirname "$parent")
+        done
+    done < <(find "$pkg_dir" -type f -print0)
+
+    return 0
+}
+
 for pkg in "${packages[@]}"; do
     echo ">>> stow --restow $pkg"
+    preflight_clean_absolute_symlinks "$pkg"
     if [[ $DRY_RUN -eq 1 ]]; then
         stow -n -v --restow --target="$HOME" "$pkg" || true
     else
@@ -134,24 +201,40 @@ done
 
 # -----------------------------------------------------------------------------
 # 4. Idempotent helpers.
+#    Resolve helpers via PATH if available, otherwise fall back to the
+#    in-repo location -- this matters on a fresh box where ~/.local/bin
+#    has been stowed but the current shell hasn't picked up the new PATH.
 # -----------------------------------------------------------------------------
-if command -v link-omarchy-theme >/dev/null 2>&1; then
+resolve_helper() {
+    local name=$1
+    if command -v "$name" >/dev/null 2>&1; then
+        command -v "$name"
+    elif [[ -x "$DOTFILES/scripts/.local/bin/$name" ]]; then
+        echo "$DOTFILES/scripts/.local/bin/$name"
+    fi
+}
+
+LINK_OMARCHY=$(resolve_helper link-omarchy-theme)
+MIGRATE_PKGS=$(resolve_helper migrate-packages)
+BOOTSTRAP_ZSH=$(resolve_helper bootstrap-zsh)
+
+if [[ -n "$LINK_OMARCHY" ]]; then
     echo ">>> link-omarchy-theme"
-    run "link-omarchy-theme"
+    run "$LINK_OMARCHY"
 fi
 
-if command -v migrate-packages >/dev/null 2>&1; then
+if [[ -n "$MIGRATE_PKGS" ]]; then
     echo ">>> migrate-packages"
     if [[ $DRY_RUN -eq 1 ]]; then
-        run "migrate-packages --dry-run"
+        run "$MIGRATE_PKGS --dry-run"
     else
-        run "migrate-packages"
+        run "$MIGRATE_PKGS"
     fi
 fi
 
-if command -v bootstrap-zsh >/dev/null 2>&1; then
+if [[ -n "$BOOTSTRAP_ZSH" ]]; then
     echo ">>> bootstrap-zsh"
-    run "bootstrap-zsh"
+    run "$BOOTSTRAP_ZSH"
 fi
 
 # -----------------------------------------------------------------------------
