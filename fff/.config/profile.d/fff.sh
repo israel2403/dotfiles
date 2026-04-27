@@ -2,8 +2,56 @@
 # fff extensions — sourced by ~/.bashrc via profile.d
 # Dependencies: fff, fzf, fd, rg, bat, nvim, tmux, imv, zathura, trash-cli, xclip
 
-# This file uses bash-specific syntax (bind -x, export -f, ${var,,}).
-# Skip it when sourced from zsh so startup stays clean.
+# ── Shell-portable helpers ─────────────────────────────────────────────
+# Defined BEFORE the zsh-guard so these work both in your interactive zsh
+# AND in the bash subshell that fff spawns when you press '!'.
+#
+#   nv [PATH]   — open PATH (default: $PWD) in nvim. If invoked from inside
+#                 the temporary shell that fff spawns on '!' (FFF_LEVEL > 0),
+#                 the shell auto-exits when nvim quits so you land back in
+#                 fff at the same directory. Outside fff it's just `nvim .`
+#                 and your shell stays alive.
+#
+#   fnv [...]   — run fff (passing through any args), then open whatever dir
+#                 fff cd'd into with nvim. Useful from the regular shell
+#                 when you want to navigate-then-edit in one command.
+#
+# Workflow inside fff to open ~/projects/school/master/tech-web in nvim:
+#   1. Launch fff (F3 or `f3`).
+#   2. Navigate into the directory (use l / arrows).
+#   3. Press `!` — fff drops you into a shell at that directory.
+#   4. Type `nv` <Enter> — nvim opens with that directory as its argument.
+#   5. Edit, then `:q` / `:qa` — the spawned shell auto-exits and you are
+#      back inside fff at the same directory.
+nv() {
+  nvim "${1:-$PWD}"
+  # Only auto-exit when invoked from fff's own subshell, never from a
+  # top-level shell -- otherwise quitting nvim would close the user's
+  # actual terminal session.
+  if [[ -n "${FFF_LEVEL:-}" && "${FFF_LEVEL:-0}" -gt 0 ]]; then
+    exit
+  fi
+}
+
+fnv() {
+  fff "$@"
+  local dir
+  if [[ -r "${FFF_CD_FILE:-$HOME/.fff_d}" ]]; then
+    dir=$(< "${FFF_CD_FILE:-$HOME/.fff_d}")
+    rm -f "${FFF_CD_FILE:-$HOME/.fff_d}"
+  fi
+  [[ -z "$dir" ]] && dir="$PWD"
+  if [[ -d "$dir" ]]; then
+    cd "$dir" || return
+    nvim "$dir"
+  else
+    echo "fnv: '$dir' is not a directory" >&2
+    return 1
+  fi
+}
+
+# This file uses bash-specific syntax below (bind -x, export -f, ${var,,}).
+# Skip the rest when sourced from zsh so startup stays clean.
 if [ -n "${ZSH_VERSION:-}" ]; then
   return 0
 fi
