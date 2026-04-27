@@ -11,6 +11,28 @@ local function get_package_name(dir)
   return nil
 end
 
+-- Read the `package` declaration out of an existing .java file. Returns nil
+-- if the file has no package (default package) or can't be read.
+local function read_package_from_file(path)
+  local fh = io.open(path, "r")
+  if not fh then
+    return nil
+  end
+  for _ = 1, 80 do
+    local line = fh:read("*l")
+    if line == nil then
+      break
+    end
+    local pkg = line:match("^%s*package%s+([%w_%.]+)%s*;")
+    if pkg then
+      fh:close()
+      return pkg
+    end
+  end
+  fh:close()
+  return nil
+end
+
 local function find_project_root()
   local markers = { "pom.xml", "build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts" }
   local dir = vim.fn.expand("%:p:h")
@@ -26,6 +48,72 @@ local function find_project_root()
     dir = vim.fn.fnamemodify(dir, ":h")
   end
   return nil
+end
+
+-- Look at the existing source tree under <project_root>/src/main/java (or
+-- src/test/java) and infer the "base package" by reading a representative
+-- file. We pick the .java file with the shortest absolute path so we land
+-- on something close to the project's top-level package, then read its
+-- `package ...;` declaration.
+local function detect_base_package(project_root)
+  for _, src_root in ipairs({ "src/main/java", "src/test/java" }) do
+    local java_root = project_root .. "/" .. src_root
+    if vim.fn.isdirectory(java_root) == 1 then
+      local files = vim.fn.globpath(java_root, "**/*.java", false, true)
+      if #files > 0 then
+        table.sort(files, function(a, b)
+          return #a < #b
+        end)
+        local pkg = read_package_from_file(files[1])
+        if pkg then
+          return pkg, java_root
+        end
+      end
+    end
+  end
+  return nil, nil
+end
+
+-- Resolve (package, target_dir) from the directory the user invoked Jc in:
+--
+--   * Inside .../src/main/java/<pkg>          -> derive package from path,
+--                                                 target stays = dir.
+--   * Exactly .../src/main/java               -> default package (""),
+--                                                 target stays = dir.
+--   * Anywhere else within a Maven/Gradle root-> detect base package from
+--                                                 the project's own sources;
+--                                                 retarget to that dir so
+--                                                 the file lands sensibly.
+--   * No project root, no package detectable  -> nil package, current dir.
+local function resolve_pkg_and_dir(dir)
+  -- Case A: already inside a Java source root
+  local pkg = get_package_name(dir)
+  if pkg ~= nil then
+    return pkg, dir
+  end
+
+  -- Case B: dir is the source root itself -> default package
+  if dir:match("/src/main/java$") or dir:match("/src/test/java$") then
+    return "", dir
+  end
+
+  -- Case C: outside src/main/java but still inside a project
+  local root = find_project_root()
+  if root then
+    local detected_pkg, java_root = detect_base_package(root)
+    if detected_pkg and java_root then
+      local pkg_path = detected_pkg:gsub("%.", "/")
+      return detected_pkg, java_root .. "/" .. pkg_path
+    end
+    -- Project found but no existing .java file -> seed at src/main/java
+    -- with default package.
+    if vim.fn.isdirectory(root .. "/src/main/java") == 1 then
+      return "", root .. "/src/main/java"
+    end
+  end
+
+  -- Case D: last resort -- write where we are with no package declaration
+  return nil, dir
 end
 
 local function write_java_file(choice, name, pkg, dir)
@@ -109,29 +197,21 @@ local function create_java_type()
           return
         end
 
-        local pkg = get_package_name(dir)
+        -- Fully auto-resolve package + target dir. No prompt for package.
+        local pkg, target_dir = resolve_pkg_and_dir(dir)
+        -- write_java_file expects nil to mean "no package declaration".
+        -- We use "" internally to mean "default package" (also nil at write
+        -- time). Anything else is a real package and gets emitted.
+        local pkg_for_write = (pkg ~= nil and pkg ~= "") and pkg or nil
 
-        if pkg then
-          -- Already inside src/main/java/... — auto-detect package, create here
-          write_java_file(choice, name, pkg, dir)
-        else
-          -- Not in a source dir — prompt for package name
-          vim.schedule(function()
-            vim.ui.input({ prompt = "Package: " }, function(pkg_input)
-              if not pkg_input or pkg_input == "" then
-                -- No package given, create in current dir without package
-                write_java_file(choice, name, nil, dir)
-                return
-              end
+        local where = vim.fn.fnamemodify(target_dir, ":~")
+        local pkg_label = pkg_for_write or "<default package>"
+        vim.notify(
+          string.format("Creating %s '%s' in %s (package: %s)", choice.label, name, where, pkg_label),
+          vim.log.levels.INFO
+        )
 
-              local project_root = find_project_root() or vim.fn.getcwd()
-              local pkg_path = pkg_input:gsub("%.", "/")
-              local target_dir = project_root .. "/src/main/java/" .. pkg_path
-
-              write_java_file(choice, name, pkg_input, target_dir)
-            end)
-          end)
-        end
+        write_java_file(choice, name, pkg_for_write, target_dir)
       end)
     end)
   end)
