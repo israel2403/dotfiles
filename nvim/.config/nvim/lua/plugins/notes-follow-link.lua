@@ -1,6 +1,7 @@
 -- notes-follow-link.lua
--- In any markdown buffer, pressing <CR> or gf on a link under the cursor
--- jumps to the linked file. Handles both link styles you use in ~/notes:
+-- In any markdown buffer, pressing `gf` or `<leader>fl` on a link under
+-- the cursor jumps to the linked file. Handles both link styles you use
+-- in ~/notes:
 --
 --   * Markdown link  [text](relative/or/absolute/path.md[#anchor])
 --   * Wiki link      [[note-name]]   or   [[note-name|alias]]
@@ -136,15 +137,25 @@ return {
         group = vim.api.nvim_create_augroup("UserNotesFollowLink", { clear = true }),
         pattern = "markdown",
         callback = function(ev)
-          local map = function(lhs, desc)
-            vim.keymap.set("n", lhs, follow_link_or_passthrough(lhs), {
-              buffer = ev.buf,
-              silent = true,
-              desc = desc,
-            })
-          end
-          map("<CR>", "Follow link under cursor (or default <CR>)")
-          map("gf", "Follow link under cursor (or default gf)")
+          -- gf: keep the original Vim semantic (go to file under cursor) but
+          --     enhance it for markdown/wiki links. If no link, falls back to
+          --     vanilla gf via nvim_feedkeys.
+          vim.keymap.set("n", "gf", follow_link_or_passthrough("gf"), {
+            buffer = ev.buf,
+            silent = true,
+            desc = "Follow link under cursor (or default gf)",
+          })
+          -- <leader>fl: explicit, conflict-free shortcut. If the cursor isn't
+          --             on a link this just shows a small notify.
+          vim.keymap.set("n", "<leader>fl", function()
+            if not try_follow_link() then
+              vim.notify("No link under cursor", vim.log.levels.INFO)
+            end
+          end, {
+            buffer = ev.buf,
+            silent = true,
+            desc = "Follow link under cursor",
+          })
         end,
       })
     end,

@@ -12,6 +12,13 @@ vim.keymap.set("n", "<leader>D", '"zyy"zp', { desc = "Duplicate Line" })
 -- explicitly when that behaviour is actually wanted.
 vim.keymap.set({ "n", "x" }, "C", "<Nop>", { desc = "Disabled (was: change to end of line)" })
 
+-- Disable Shift+R in normal/visual mode.
+-- Vim's default R enters Replace mode (overwrite characters under the cursor).
+-- It's easy to hit by accident when reaching for r (single-char replace) or R
+-- when shift is still held. Remapped to <Nop>; if you genuinely need Replace
+-- mode, type `:set noinsertmode | exec "normal! gR"` or use single-char `r`.
+vim.keymap.set({ "n", "x" }, "R", "<Nop>", { desc = "Disabled (was: Replace mode)" })
+
 -- Notes / Obsidian
 local map = vim.keymap.set
 
