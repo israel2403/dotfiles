@@ -5,6 +5,13 @@
 -- Duplicate line (using <leader>D to avoid tmux Ctrl-d conflict and LazyVim <leader>d prefix)
 vim.keymap.set("n", "<leader>D", '"zyy"zp', { desc = "Duplicate Line" })
 
+-- Disable Shift+C in normal/visual mode.
+-- Vim's default C is `c$` (change-to-end-of-line) -- it deletes from the cursor
+-- to the line end and drops you into insert mode. Remapped to <Nop> so an
+-- accidental Shift+C is a no-op. Use `c$` (or visual-select then `c`)
+-- explicitly when that behaviour is actually wanted.
+vim.keymap.set({ "n", "x" }, "C", "<Nop>", { desc = "Disabled (was: change to end of line)" })
+
 -- Notes / Obsidian
 local map = vim.keymap.set
 
