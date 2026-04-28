@@ -74,7 +74,11 @@ local function resolve_wiki_in_vault(wiki)
   return nil
 end
 
-local function follow_link()
+-- Try to follow a link under the cursor. Returns true if something was
+-- handled (file opened or notify shown about a missing link). Returns
+-- false if the cursor is NOT on any kind of link, leaving the caller to
+-- pass the original keypress through to its default behaviour.
+local function try_follow_link()
   -- 1) markdown link [text](path[#anchor])
   local target = md_link_under_cursor()
   if target then
@@ -82,33 +86,40 @@ local function follow_link()
     local path = resolve_md_target(file)
     if vim.fn.filereadable(path) == 1 then
       vim.cmd("edit " .. vim.fn.fnameescape(path))
-      return
+    else
+      vim.notify("Link target not found: " .. path, vim.log.levels.WARN)
     end
-    vim.notify("Link target not found: " .. path, vim.log.levels.WARN)
-    return
+    return true
   end
 
-  -- 2) wiki link [[note]] - prefer obsidian.nvim's smart_action when loaded
+  -- 2) wiki link [[note]] / [[note|alias]]
   local wiki = wiki_link_under_cursor()
   if wiki then
-    local ok, util = pcall(require, "obsidian.util")
-    if ok and type(util.smart_action) == "function" then
-      util.smart_action()
-      return
-    end
     local hit = resolve_wiki_in_vault(wiki)
     if hit then
       vim.cmd("edit " .. vim.fn.fnameescape(hit))
-      return
+    else
+      vim.notify("No note matches: " .. wiki, vim.log.levels.WARN)
     end
-    vim.notify("No note matches: " .. wiki, vim.log.levels.WARN)
-    return
+    return true
   end
 
-  -- 3) fall through to vanilla gf so paths/URLs still work
-  local ok = pcall(vim.cmd, "normal! gf")
-  if not ok then
-    vim.notify("No link / file under cursor", vim.log.levels.INFO)
+  return false
+end
+
+-- Build a normal-mode mapping callback that:
+--   * follows a link under the cursor when there is one, OR
+--   * passes the original keypress through to its default Vim behaviour
+--     (i.e. <CR> just moves to the next line; gf still goes to file).
+-- nvim_feedkeys with the 'n' mode flag means "no remap", so the fed key
+-- bypasses our own mapping and uses the built-in semantics.
+local function follow_link_or_passthrough(fallback_lhs)
+  return function()
+    if try_follow_link() then
+      return
+    end
+    local keys = vim.api.nvim_replace_termcodes(fallback_lhs, true, false, true)
+    vim.api.nvim_feedkeys(keys, "n", false)
   end
 end
 
@@ -126,14 +137,14 @@ return {
         pattern = "markdown",
         callback = function(ev)
           local map = function(lhs, desc)
-            vim.keymap.set("n", lhs, follow_link, {
+            vim.keymap.set("n", lhs, follow_link_or_passthrough(lhs), {
               buffer = ev.buf,
               silent = true,
               desc = desc,
             })
           end
-          map("<CR>", "Follow link under cursor")
-          map("gf", "Follow link under cursor")
+          map("<CR>", "Follow link under cursor (or default <CR>)")
+          map("gf", "Follow link under cursor (or default gf)")
         end,
       })
     end,
