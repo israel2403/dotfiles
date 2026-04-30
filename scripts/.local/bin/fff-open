@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# fff-open — smart opener for fff and any other tool that wants a single
+# executable to dispatch a file by extension.
+#
+# Why an external script (not a shell function)?
+#   fff itself is a bash script that is launched from your interactive shell
+#   (zsh in this setup). When zsh starts fff, it does NOT export bash
+#   functions to the new bash subprocess, so a fff_open() function defined
+#   in ~/.config/profile.d/fff.sh is invisible to fff. By making this an
+#   executable on PATH it works regardless of which shell launches fff.
+#
+# Dispatch table:
+#   *.pdf, *.epub, *.djvu      -> zathura
+#   *.png, *.jpg, …            -> imv
+#   *.mp4, *.mkv, …            -> mpv (xdg-open fallback)
+#   text-like / source files   -> nvim
+#   archives                   -> show contents (no destructive default)
+#   anything else              -> xdg-open
+
+set -u
+
+if [[ $# -lt 1 ]]; then
+    echo "usage: fff-open <file>" >&2
+    exit 2
+fi
+
+file=$1
+lower=${file,,}
+
+case "$lower" in
+    *.java|*.js|*.ts|*.jsx|*.tsx|*.py|*.go|*.rs|*.c|*.cpp|*.h| \
+    *.sh|*.bash|*.zsh|*.yml|*.yaml|*.toml|*.json|*.xml|*.html| \
+    *.css|*.md|*.txt|*.conf|*.cfg|*.ini|*.lua|*.vim|*.sql|*.gradle| \
+    *.properties|*.env)
+        exec nvim "$file"
+        ;;
+    *.png|*.jpg|*.jpeg|*.gif|*.bmp|*.webp|*.svg)
+        exec imv "$file"
+        ;;
+    *.pdf|*.epub|*.djvu)
+        exec zathura "$file"
+        ;;
+    *.mp4|*.mkv|*.avi|*.webm|*.mov)
+        if command -v mpv >/dev/null 2>&1; then
+            exec mpv "$file"
+        fi
+        exec xdg-open "$file"
+        ;;
+    *.tar.*|*.zip|*.gz|*.bz2|*.xz|*.7z|*.rar)
+        echo "Archive: $file"
+        file "$file"
+        echo "---"
+        tar tf "$file" 2>/dev/null || unzip -l "$file" 2>/dev/null
+        ;;
+    *)
+        # Fallback: text-like via nvim, otherwise xdg-open (which now picks up
+        # zathura for PDFs via mimeapps.list).
+        if file -b --mime-type "$file" | grep -q "^text/"; then
+            exec nvim "$file"
+        else
+            exec xdg-open "$file"
+        fi
+        ;;
+esac

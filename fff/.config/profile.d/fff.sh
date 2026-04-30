@@ -74,36 +74,17 @@ f3() {
 bind -x '"\eOR":f3'      # F3 in some terminals
 bind -x '"\e[13~":f3'    # F3 in other terminals
 
-# ── Smart opener (used by FFF_OPENER and the o function) ───────────
-fff_open() {
-  case "${1,,}" in
-    *.java|*.js|*.ts|*.jsx|*.tsx|*.py|*.go|*.rs|*.c|*.cpp|*.h| \
-    *.sh|*.bash|*.zsh|*.yml|*.yaml|*.toml|*.json|*.xml|*.html| \
-    *.css|*.md|*.txt|*.conf|*.cfg|*.ini|*.lua|*.vim|*.sql|*.gradle| \
-    *.properties|*.env)
-      nvim "$1" ;;
-    *.png|*.jpg|*.jpeg|*.gif|*.bmp|*.webp|*.svg)
-      imv "$1" ;;
-    *.pdf|*.epub|*.djvu)
-      zathura "$1" ;;
-    *.mp4|*.mkv|*.avi|*.webm|*.mov)
-      mpv "$1" 2>/dev/null || xdg-open "$1" ;;
-    *.tar.*|*.zip|*.gz|*.bz2|*.xz|*.7z|*.rar)
-      echo "Archive: $1"; file "$1"; echo "---"; tar tf "$1" 2>/dev/null || unzip -l "$1" 2>/dev/null ;;
-    *)
-      # Fallback: if it looks like text, open in nvim; otherwise xdg-open
-      if file -b --mime-type "$1" | grep -q "^text/"; then
-        nvim "$1"
-      else
-        xdg-open "$1"
-      fi ;;
-  esac
-}
-export -f fff_open
-export FFF_OPENER=fff_open
+# ── Smart opener ───────────────────────────────────────────────────────────────
+# fff is itself a bash script that's launched from your interactive zsh.
+# zsh does NOT export bash functions to subprocesses, so a fff_open shell
+# function defined here would be invisible to fff. The opener now lives as a
+# standalone executable at ~/.local/bin/fff-open (stowed via the `scripts`
+# package), so it's resolvable via PATH from any shell -- including the bash
+# subprocess that fff itself runs in. PDFs route through zathura there.
+export FFF_OPENER=fff-open
 
-# Shorthand for the opener
-o() { fff_open "$1"; }
+# Shorthand for the opener (works in both zsh and bash).
+o() { fff-open "$1"; }
 
 # ── Fuzzy file finder (IntelliJ-style Ctrl+Shift+N) ───────────────
 f() {
