@@ -76,55 +76,110 @@ return {
     },
   },
 
-  -- <leader>dJ -- "Debug Java Main" with no race.
+  -- <leader>dJ -- "Debug Java Main" with no race and no attach fall-through.
+  -- <leader>dA -- "Debug Java Attach" (127.0.0.1:5005, opt-in).
   --
-  -- Background: <F5> / <leader>dc invoke dap.continue(), which reads
-  -- dap.configurations.java. That table is populated ASYNCHRONOUSLY by
-  -- jdtls.dap.setup_dap_main_class_configs() after jdtls finishes indexing
-  -- the project. On a fresh project (or right after :LspRestart), pressing
-  -- F5 too early lands on an empty configurations table -- continue exits
-  -- silently and looks broken.
+  -- Background
+  -- ----------
+  -- <F5> / <leader>dc invoke dap.continue(), which reads
+  -- dap.configurations.java. LazyVim's lang.java extra pre-seeds that table
+  -- with a SINGLE default config -- 'Debug (Attach) - Remote' to
+  -- 127.0.0.1:5005. Later, jdtls.dap.setup_dap_main_class_configs()
+  -- asynchronously appends 'launch' entries for every main(...) it finds.
   --
-  -- This mapping forces a synchronous-feeling debug start: it (re-)runs the
-  -- main-class scan and only calls dap.continue() once jdtls has finished
-  -- populating dap.configurations.java. If nothing turns up after the scan,
-  -- it tells you so explicitly instead of failing silently.
+  -- Two problems for the casual case:
+  --   1. Race: pressing <F5> before the async scan finishes runs the only
+  --      available config (the attach one) and fails with
+  --          "Failed to attach to 127.0.0.1:5005"
+  --      because nothing is listening on 5005.
+  --   2. Even after the scan, if the buffer's project has NO main(String[])
+  --      anywhere (e.g. utility classes, code-challenges repos), the attach
+  --      config is still selected silently -- same error.
   --
-  -- Buffer-local to filetype=java so it doesn't pollute other languages'
-  -- <leader>dJ.
+  -- <leader>dJ fixes both: it forces the main-class scan, waits for its
+  -- on_ready callback, then only considers configs with request=="launch"
+  -- (real main classes). 1 launch -> run it; >1 -> vim.ui.select picker; 0
+  -- -> a clear notification suggesting alternatives.
+  --
+  -- <leader>dA explicitly launches the attach-to-127.0.0.1:5005 config when
+  -- you really do have a JVM running with -agentlib:jdwp=...,address=5005.
   {
     "mfussenegger/nvim-jdtls",
     optional = true,
     init = function()
+      local function only_launches()
+        local configs = (require("dap").configurations or {}).java or {}
+        return vim.tbl_filter(function(c)
+          return c.request == "launch"
+        end, configs)
+      end
+
+      local function debug_java_main()
+        local ok, jdtls_dap = pcall(require, "jdtls.dap")
+        if not ok then
+          vim.notify("jdtls.dap not loaded -- has jdtls attached yet?", vim.log.levels.WARN)
+          return
+        end
+        vim.notify("Scanning for Java main classes...", vim.log.levels.INFO)
+        jdtls_dap.setup_dap_main_class_configs({
+          on_ready = vim.schedule_wrap(function()
+            local launches = only_launches()
+            if #launches == 0 then
+              vim.notify(
+                "No Java main(String[]) found in this project.\n"
+                  .. "  * If this file has @Test methods, try <leader>tt or <leader>tr.\n"
+                  .. "  * If you want to attach to a running JVM on 127.0.0.1:5005, use <leader>dA.\n"
+                  .. "  * Otherwise add a main(String[] args) method or open a class with one.",
+                vim.log.levels.WARN
+              )
+              return
+            end
+            if #launches == 1 then
+              vim.notify(
+                string.format("Launching: %s", launches[1].name or "<unnamed>"),
+                vim.log.levels.INFO
+              )
+              require("dap").run(launches[1])
+              return
+            end
+            vim.ui.select(launches, {
+              prompt = "Select Java main to debug:",
+              format_item = function(c)
+                return c.name or c.mainClass or "<unnamed>"
+              end,
+            }, function(choice)
+              if choice then
+                require("dap").run(choice)
+              end
+            end)
+          end),
+        })
+      end
+
+      local function debug_java_attach()
+        require("dap").run({
+          type = "java",
+          request = "attach",
+          name = "Debug (Attach) - Remote",
+          hostName = "127.0.0.1",
+          port = 5005,
+        })
+      end
+
       vim.api.nvim_create_autocmd("FileType", {
         group = vim.api.nvim_create_augroup("UserJavaDebugMain", { clear = true }),
         pattern = "java",
         callback = function(ev)
-          vim.keymap.set("n", "<leader>dJ", function()
-            local ok, jdtls_dap = pcall(require, "jdtls.dap")
-            if not ok then
-              vim.notify("jdtls.dap not loaded -- has jdtls attached yet?", vim.log.levels.WARN)
-              return
-            end
-            vim.notify("Scanning for Java main classes...", vim.log.levels.INFO)
-            jdtls_dap.setup_dap_main_class_configs({
-              on_ready = vim.schedule_wrap(function()
-                local configs = (require("dap").configurations or {}).java or {}
-                if #configs == 0 then
-                  vim.notify(
-                    "No Java main classes found. Wait for jdtls to finish indexing (status line) and try again,\nor open a buffer inside a Maven/Gradle project root.",
-                    vim.log.levels.WARN
-                  )
-                  return
-                end
-                vim.notify(
-                  string.format("Found %d Java main config(s); launching dap.continue()", #configs),
-                  vim.log.levels.INFO
-                )
-                require("dap").continue()
-              end),
-            })
-          end, { buffer = ev.buf, silent = true, desc = "Debug Java Main" })
+          vim.keymap.set("n", "<leader>dJ", debug_java_main, {
+            buffer = ev.buf,
+            silent = true,
+            desc = "Debug Java Main (launch only)",
+          })
+          vim.keymap.set("n", "<leader>dA", debug_java_attach, {
+            buffer = ev.buf,
+            silent = true,
+            desc = "Debug Java Attach (127.0.0.1:5005)",
+          })
         end,
       })
     end,
