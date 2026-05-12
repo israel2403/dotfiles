@@ -50,27 +50,44 @@ fnv() {
   fi
 }
 
+# ── Source fff config (BOTH shells) ────────────────────────────────────
+# fff itself reads FFF_FAV1..FFF_FAV9, FFF_OPENER, etc. from its environment.
+# fff.conf is plain `export` statements (portable). Sourcing it in BOTH zsh
+# and bash is what makes the favorites jumps (digit keys 1-9 inside fff) work
+# regardless of which shell you launched fff from.
+[ -f ~/.config/fff/fff.conf ] && . ~/.config/fff/fff.conf
+
+# ── f3 wrapper (portable across zsh and bash) ───────────────────────────
+# Runs fff and, on exit, cd's the parent shell into wherever fff was. The
+# function must be defined ABOVE the zsh-guard or zsh will print
+# "command not found: f3" when you try to call it.
+f3() {
+  fff "$@"
+  if [ -f "${FFF_CD_FILE:-$HOME/.fff_d}" ]; then
+    local dir
+    dir=$(cat "${FFF_CD_FILE:-$HOME/.fff_d}")
+    [ -d "$dir" ] && cd "$dir"
+    rm -f "${FFF_CD_FILE:-$HOME/.fff_d}"
+  fi
+}
+
+# ── F3 key -> f3 (per-shell binding) ─────────────────────────────────
+# zsh: bindkey -s injects the literal keys 'f3<CR>' into the line editor,
+#       which is the simplest way to launch a TUI command from a key.
+# bash: bind -x runs the function directly; defined inside the bash-only block
+#       below so it doesn't error in zsh.
+if [ -n "${ZSH_VERSION:-}" ]; then
+  bindkey -s '\eOR'   'f3\n'   # F3 in some terminals
+  bindkey -s '\e[13~' 'f3\n'   # F3 in other terminals
+fi
+
 # This file uses bash-specific syntax below (bind -x, export -f, ${var,,}).
 # Skip the rest when sourced from zsh so startup stays clean.
 if [ -n "${ZSH_VERSION:-}" ]; then
   return 0
 fi
 
-# ── Source fff config ──────────────────────────────────────────────
-[ -f ~/.config/fff/fff.conf ] && source ~/.config/fff/fff.conf
-
-# ── fff wrapper (cd on exit) ───────────────────────────────────────
-f3() {
-  fff "$@"
-  if [ -f "$FFF_CD_FILE" ]; then
-    local dir
-    dir=$(cat "$FFF_CD_FILE")
-    [ -d "$dir" ] && cd "$dir" || true
-    rm -f "$FFF_CD_FILE"
-  fi
-}
-
-# Bind F3 key to launch f3 (so you can just press F3 instead of typing f3)
+# Bind F3 in interactive bash to call the function directly.
 bind -x '"\eOR":f3'      # F3 in some terminals
 bind -x '"\e[13~":f3'    # F3 in other terminals
 
