@@ -71,8 +71,62 @@ return {
     opts = {
       spec = {
         { "<leader>d", group = "Debug", icon = "" },
-        { "<leader>t", group = "Test",  icon = "󰙨" },
+        { "<leader>t", group = "Test",  icon = "ó±¨" },
       },
     },
+  },
+
+  -- <leader>dJ -- "Debug Java Main" with no race.
+  --
+  -- Background: <F5> / <leader>dc invoke dap.continue(), which reads
+  -- dap.configurations.java. That table is populated ASYNCHRONOUSLY by
+  -- jdtls.dap.setup_dap_main_class_configs() after jdtls finishes indexing
+  -- the project. On a fresh project (or right after :LspRestart), pressing
+  -- F5 too early lands on an empty configurations table -- continue exits
+  -- silently and looks broken.
+  --
+  -- This mapping forces a synchronous-feeling debug start: it (re-)runs the
+  -- main-class scan and only calls dap.continue() once jdtls has finished
+  -- populating dap.configurations.java. If nothing turns up after the scan,
+  -- it tells you so explicitly instead of failing silently.
+  --
+  -- Buffer-local to filetype=java so it doesn't pollute other languages'
+  -- <leader>dJ.
+  {
+    "mfussenegger/nvim-jdtls",
+    optional = true,
+    init = function()
+      vim.api.nvim_create_autocmd("FileType", {
+        group = vim.api.nvim_create_augroup("UserJavaDebugMain", { clear = true }),
+        pattern = "java",
+        callback = function(ev)
+          vim.keymap.set("n", "<leader>dJ", function()
+            local ok, jdtls_dap = pcall(require, "jdtls.dap")
+            if not ok then
+              vim.notify("jdtls.dap not loaded -- has jdtls attached yet?", vim.log.levels.WARN)
+              return
+            end
+            vim.notify("Scanning for Java main classes...", vim.log.levels.INFO)
+            jdtls_dap.setup_dap_main_class_configs({
+              on_ready = vim.schedule_wrap(function()
+                local configs = (require("dap").configurations or {}).java or {}
+                if #configs == 0 then
+                  vim.notify(
+                    "No Java main classes found. Wait for jdtls to finish indexing (status line) and try again,\nor open a buffer inside a Maven/Gradle project root.",
+                    vim.log.levels.WARN
+                  )
+                  return
+                end
+                vim.notify(
+                  string.format("Found %d Java main config(s); launching dap.continue()", #configs),
+                  vim.log.levels.INFO
+                )
+                require("dap").continue()
+              end),
+            })
+          end, { buffer = ev.buf, silent = true, desc = "Debug Java Main" })
+        end,
+      })
+    end,
   },
 }
