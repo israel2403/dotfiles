@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# lazygit-edit -- bridge between lazygit and (n)vim.
+#
+# When lazygit is launched from INSIDE nvim (Snacks.lazygit, the LazyVim
+# default <leader>gg / <leader>gG mappings, or `nvim --listen ...; lazygit`)
+# pressing Enter on a file would normally open a NESTED nvim inside the
+# lazygit terminal. That's confusing and slow. Snacks exports $NVIM with the
+# parent nvim's RPC socket -- this shim uses it to open the file as a new
+# tab in the parent nvim instead.
+#
+# When lazygit is launched from a regular shell (no $NVIM), this falls back
+# to plain `nvim "$file"`, so it also works as a standalone editor.
+#
+# Wired into lazygit via ~/.config/lazygit/config.yml:
+#     os.edit            = 'lazygit-edit "{{filename}}"'
+#     os.editAtLine      = 'lazygit-edit "{{filename}}" "{{line}}"'
+#     os.editAtLineAndWait = 'lazygit-edit "{{filename}}" "{{line}}"'
+
+set -u
+
+file=${1:-}
+line=${2:-}
+[[ -z "$file" ]] && exit 0
+
+# Lazygit hands us paths relative to the repo root. Resolve so the parent
+# nvim's cwd doesn't matter when it opens the file.
+abs=$(realpath -- "$file" 2>/dev/null || printf '%s' "$file")
+
+if [[ -n "${NVIM:-}" ]] && command -v nvim >/dev/null 2>&1; then
+    # Open as a new tab in the parent nvim.
+    nvim --server "$NVIM" --remote-tab -- "$abs"
+    # Best-effort: position the cursor on the requested line.
+    if [[ -n "$line" ]]; then
+        nvim --server "$NVIM" --remote-send "${line}G" 2>/dev/null || true
+    fi
+    exit 0
+fi
+
+# No parent nvim -> spawn a fresh one.
+if [[ -n "$line" ]]; then
+    exec nvim "+$line" -- "$abs"
+fi
+exec nvim -- "$abs"
