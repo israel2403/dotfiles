@@ -166,6 +166,56 @@ return {
         })
       end
 
+      -- Strip the attach-to-5005 default that LazyVim's lang.java extra
+      -- hardcodes into dap.configurations.java. Any code path that ends up
+      -- in select_config_and_run() (e.g. <leader>dc or <F5> with no active
+      -- session) would otherwise silently pick it and timeout against the
+      -- non-existent JVM. <leader>dA below remains the explicit way to use
+      -- the attach config when you actually have a remote JVM listening.
+      local function strip_attach_defaults()
+        local ok, dap = pcall(require, "dap")
+        if not ok then return end
+        dap.configurations = dap.configurations or {}
+        if type(dap.configurations.java) == "table" then
+          dap.configurations.java = vim.tbl_filter(function(c)
+            return c.request ~= "attach"
+          end, dap.configurations.java)
+        end
+      end
+
+      -- Run the strip once nvim has settled (after LazyVim's lang.java
+      -- extra has populated the configurations).
+      vim.api.nvim_create_autocmd("User", {
+        pattern = "VeryLazy",
+        once = true,
+        callback = strip_attach_defaults,
+      })
+      -- Also re-strip whenever jdtls finishes its async scan, in case any
+      -- attach entry creeps back in via tooling we don't control.
+      vim.api.nvim_create_autocmd("LspAttach", {
+        callback = function(ev)
+          local client = vim.lsp.get_client_by_id(ev.data.client_id)
+          if client and client.name == "jdtls" then
+            vim.defer_fn(strip_attach_defaults, 500)
+          end
+        end,
+      })
+
+      -- Smart <leader>dc / <F5> for Java buffers:
+      --   * If a session is alive       -> defer to vanilla dap.continue()
+      --                                     (resume / next-breakpoint / etc).
+      --   * If no session               -> race-free launch (same path as
+      --                                     <leader>dJ). No attach fall-through.
+      local function debug_java_continue()
+        local ok, dap = pcall(require, "dap")
+        if not ok then return end
+        if dap.session() then
+          dap.continue()
+          return
+        end
+        debug_java_main()
+      end
+
       vim.api.nvim_create_autocmd("FileType", {
         group = vim.api.nvim_create_augroup("UserJavaDebugMain", { clear = true }),
         pattern = "java",
@@ -179,6 +229,16 @@ return {
             buffer = ev.buf,
             silent = true,
             desc = "Debug Java Attach (127.0.0.1:5005)",
+          })
+          vim.keymap.set("n", "<leader>dc", debug_java_continue, {
+            buffer = ev.buf,
+            silent = true,
+            desc = "Debug Continue (Java-aware)",
+          })
+          vim.keymap.set("n", "<F5>", debug_java_continue, {
+            buffer = ev.buf,
+            silent = true,
+            desc = "Debug Continue (Java-aware)",
           })
         end,
       })
