@@ -8,8 +8,11 @@ config_version: 2
 settings:
   content.javascript.clipboard:
     https://chatgpt.com: access-paste
+    https://github.com: access-paste
     https://platform.openai.com: access-paste
+    https://www.notion.so: access-paste
   content.notifications.enabled:
     https://www.youtube.com: true
   content.register_protocol_handler:
     https://mail.google.com?extsrc=mailto&url=%25s: true
+    https://outlook.office.com?mailtouri=%25s: true

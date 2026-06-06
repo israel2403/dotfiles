@@ -7,14 +7,13 @@
 # every time you launch lazygit from inside nvim.
 
 git:
-  autoFetch: true        # fetch from origin on open
-  autoRefresh: true      # refresh the UI when files change on disk
-  paging:
-    colorArg: always
-    # NOTE: leaving `pager:` unset uses lazygit's built-in diff renderer.
-    # If you ever install git-delta, uncomment this for richer diffs:
-    #   pager: delta --paging=never --line-numbers
-
+  autoFetch: true # fetch from origin on open
+  autoRefresh: true # refresh the UI when files change on disk
+  pagers:
+    - colorArg: always
+      # NOTE: leaving `pager:` unset uses lazygit's built-in diff renderer.
+      # If you ever install git-delta, uncomment this for richer diffs:
+      #   pager: delta --paging=never --line-numbers
 os:
   # When launched from inside nvim ($NVIM set), open files in the parent
   # nvim instead of a nested one. Outside nvim this falls back to plain
@@ -23,7 +22,6 @@ os:
   editAtLine: 'lazygit-edit "{{filename}}" "{{line}}"'
   editAtLineAndWait: 'lazygit-edit "{{filename}}" "{{line}}"'
   editInTerminal: true
-
 gui:
   border: rounded
   showFileTree: true
@@ -34,9 +32,7 @@ gui:
   showBottomLine: true
   authorColors:
     "*": "yellow"
-
 update:
-  method: never           # lazygit is managed by pacman; don't self-update
-
+  method: never # lazygit is managed by pacman; don't self-update
 confirmOnQuit: false
 disableStartupPopups: true
