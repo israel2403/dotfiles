@@ -1,0 +1,210 @@
+# Ghostty Configuration - Omarchy-inspired
+# Modern terminal setup with vim integration
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# WINDOW & APPEARANCE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Window behavior
+window-padding-x = 8
+window-padding-y = 8
+window-decoration = client
+window-vsync = true
+
+# Keep terminal window on top optionally
+# window-theme = dark
+
+# Cursor styling
+cursor-style = block
+cursor-style-blink = true
+cursor-thickness = 1
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# FONT CONFIGURATION
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Primary font - use a monospace font with good ligature support
+font-family = JetBrains Mono
+font-size = 12
+# Fallback fonts
+font-family-fallback = Noto Mono
+# Enable ligatures
+font-feature = ss01  # JetBrains Mono stylistic set 01
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# THEME: Tokyo Night (Default Omarchy-compatible theme)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Tokyo Night - Dark, professional color scheme
+background = 1a1b26
+foreground = c0caf5
+
+# Cursor colors
+cursor-text = 1a1b26
+cursor-bg = 7aa2f7
+
+# Selection highlight
+selection-background = 283457
+selection-foreground = c0caf5
+
+# Tab bar colors
+tab-bar-background = 16161e
+tab-bar-margin-bottom = 0
+active-tab-background = 292e42
+active-tab-foreground = 7aa2f7
+inactive-tab-background = 1a1b26
+inactive-tab-foreground = 565f89
+
+# Color palette (Tokyo Night)
+palette = 0=#15202b
+palette = 1=#f7768e
+palette = 2=#9ece6a
+palette = 3=#ffc777
+palette = 4=#7aa2f7
+palette = 5=#bb9af7
+palette = 6=#7dcfff
+palette = 7=#a9b1d6
+palette = 8=#565f89
+palette = 9=#f7768e
+palette = 10=#9ece6a
+palette = 11=#ffc777
+palette = 12=#7aa2f7
+palette = 13=#bb9af7
+palette = 14=#7dcfff
+palette = 15=#c0caf5
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# KEYBINDINGS - Vim-like navigation
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Alt+Enter for fullscreen
+keybind = alt+enter=toggle_fullscreen
+
+# Alt+Plus/Minus for font zoom
+keybind = alt+plus=increase_font_size
+keybind = alt+minus=decrease_font_size
+keybind = alt+0=reset_font_size
+
+# Tab management
+keybind = ctrl+t=new_tab
+keybind = ctrl+w=close_tab
+keybind = ctrl+pagedown=next_tab
+keybind = ctrl+pageup=previous_tab
+
+# Window management
+keybind = ctrl+n=new_window
+keybind = alt+left=prev_window
+keybind = alt+right=next_window
+
+# Copy/Paste
+keybind = ctrl+c=copy
+keybind = ctrl+v=paste
+
+# Search/Selection
+keybind = ctrl+f=show_search
+keybind = ctrl+shift+f=show_search_and_select_all
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SHELL & ENVIRONMENT
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Use bash as default shell (inherited from ~/.bashrc)
+shell-integration = bash
+
+# Support for custom escape sequences
+shell-integration-features = sudo,no-title
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# SCROLLBACK & HISTORY
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Keep 5000 lines of scrollback
+scrollback-lines = 5000
+scrollback-multiplier = 1
+
+# Copy to clipboard on selection
+copy-on-select = false
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# PERFORMANCE & RENDERING
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Graphics backend (auto-detect: wayland, x11, or fallback)
+graphics-protocol = auto
+
+# Custom block rendering for better performance
+custom-block-render = true
+
+# Smooth scrolling
+mouse-scroll-multiplier = 3
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# MOUSE & INPUT
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Enable mouse support
+mouse = true
+
+# Click to focus
+click-to-focus = true
+
+# Extended keyboard protocol support
+xterm-keybindings = true
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TITLE & NOTIFICATIONS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Dynamic window title from shell
+title = true
+
+# Show desktop notifications on bell
+notify-on-bell = true
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# VIM INTEGRATION
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Support for vim mode indicator (if your shell supports it)
+# This allows vim mode detection in compatible shells
+keybind = alt+v=show_vim_mode
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# TRANSPARENCY & EFFECTS
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Optional: Enable background blur (compositor dependent)
+# background-blur = 5
+
+# Optional: Enable transparency (adjust to your preference)
+# background-opacity = 0.95
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# ADVANCED: Split pane support
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Split vertically
+keybind = ctrl+slash=new_split:right
+
+# Split horizontally
+keybind = ctrl+backslash=new_split:down
+
+# Navigate splits (vim-like)
+keybind = ctrl+h=goto_split:left
+keybind = ctrl+j=goto_split:down
+keybind = ctrl+k=goto_split:up
+keybind = ctrl+l=goto_split:right
+
+# Close split
+keybind = alt+q=close_split
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# COMMAND PALETTE
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Toggle command palette
+keybind = ctrl+shift+p=show_command_palette
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# END OF CONFIG
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
