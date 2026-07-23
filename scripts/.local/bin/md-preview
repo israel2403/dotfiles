@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Render Markdown in the terminal. Use --watch beside Neovim in Zellij.
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  md-preview FILE.md
+  md-preview --watch FILE.md
+
+Renders with glow when available, then falls back to mdcat, bat, or plain cat.
+USAGE
+}
+
+watch=false
+if [[ "${1:-}" == "--watch" || "${1:-}" == "-w" ]]; then
+  watch=true
+  shift
+fi
+
+file="${1:-}"
+if [[ -z "$file" || "${file:-}" == "-h" || "${file:-}" == "--help" ]]; then
+  usage
+  exit 0
+fi
+
+if [[ ! -f "$file" ]]; then
+  echo "md-preview: file not found: $file" >&2
+  exit 1
+fi
+
+render_once() {
+  if command -v glow >/dev/null 2>&1; then
+    if [[ "$watch" == true ]]; then
+      glow -s dark -w "${COLUMNS:-100}" "$file"
+    else
+      glow -s dark -p "$file"
+    fi
+  elif command -v mdcat >/dev/null 2>&1; then
+    mdcat "$file"
+  elif command -v batcat >/dev/null 2>&1; then
+    batcat --language markdown --style plain "$file"
+  elif command -v bat >/dev/null 2>&1; then
+    bat --language markdown --style plain "$file"
+  else
+    cat "$file"
+  fi
+}
+
+if [[ "$watch" != true ]]; then
+  render_once
+  exit 0
+fi
+
+while true; do
+  clear
+  printf 'md-preview --watch %s  |  %s\n\n' "$file" "$(date '+%H:%M:%S')"
+  render_once
+  sleep "${MD_PREVIEW_INTERVAL:-1}"
+done

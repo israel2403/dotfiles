@@ -124,6 +124,9 @@ local function reopen_last_run()
   end
 end
 
+vim.keymap.set("n", "<leader>Pr", run_python, { desc = "Run Python file" })
+vim.keymap.set("n", "<leader>Po", reopen_last_run, { desc = "Reopen last run" })
+
 return {
   {
     "folke/which-key.nvim",

@@ -1,9 +1,10 @@
 -- blink-esc-dismiss.lua
--- Make <Esc> in insert mode "smart":
+-- Make <Esc> and the TeamViewer-friendly `jk` chord in insert mode "smart":
 --   * If blink.cmp is showing a completion menu or ghost-text suggestion,
 --     hide it and STAY in insert mode.
 --   * If nothing is shown, fall through to the regular <Esc> behaviour
---     (leave insert mode).
+--     (leave insert mode). For `jk`, fallback uses the insert-mode keymap
+--     in lua/config/keymaps.lua.
 --
 -- Why two actions? blink.cmp evaluates each entry in the action list in
 -- order. Each action returns true (handled, stop) or false (try next).
@@ -22,6 +23,7 @@ return {
     opts = {
       keymap = {
         ["<Esc>"] = { "hide", "fallback" },
+        ["jk"] = { "hide", "fallback" },
       },
     },
   },

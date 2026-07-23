@@ -38,17 +38,17 @@
 return {
   -- Mason: make the Java debug bundles part of ensure_installed so a fresh
   -- box gets them on first nvim launch.
-  {
-    "mason-org/mason.nvim",
-    optional = true,
-    opts = function(_, opts)
-      opts.ensure_installed = opts.ensure_installed or {}
-      vim.list_extend(opts.ensure_installed, {
-        "java-debug-adapter",
-        "java-test",
-      })
-    end,
-  },
+  -- {
+  --   "mason-org/mason.nvim",
+  --   optional = true,
+  --   opts = function(_, opts)
+  --     opts.ensure_installed = opts.ensure_installed or {}
+  --     vim.list_extend(opts.ensure_installed, {
+  --       "java-debug-adapter",
+  --       "java-test",
+  --     })
+  --   end,
+  -- },
 
   -- jdtls: extend the dap options layered on top of LazyVim's defaults.
   -- LazyVim already sets dap = { hotcodereplace = "auto" }; we keep that
@@ -60,6 +60,15 @@ return {
     opts = {
       dap = { hotcodereplace = "auto", config_overrides = {} },
       dap_main = {},
+      settings = {
+        java = {
+          inlayHints = {
+            parameterNames = {
+              enabled = "all",
+            },
+          },
+        },
+      },
       test = true,
     },
   },
@@ -71,7 +80,7 @@ return {
     opts = {
       spec = {
         { "<leader>d", group = "Debug", icon = "" },
-        { "<leader>t", group = "Test",  icon = "ó±¨" },
+        { "<leader>t", group = "Test", icon = "ó±¨" },
       },
     },
   },
@@ -135,10 +144,7 @@ return {
               return
             end
             if #launches == 1 then
-              vim.notify(
-                string.format("Launching: %s", launches[1].name or "<unnamed>"),
-                vim.log.levels.INFO
-              )
+              vim.notify(string.format("Launching: %s", launches[1].name or "<unnamed>"), vim.log.levels.INFO)
               require("dap").run(launches[1])
               return
             end
@@ -174,7 +180,9 @@ return {
       -- the attach config when you actually have a remote JVM listening.
       local function strip_attach_defaults()
         local ok, dap = pcall(require, "dap")
-        if not ok then return end
+        if not ok then
+          return
+        end
         dap.configurations = dap.configurations or {}
         if type(dap.configurations.java) == "table" then
           dap.configurations.java = vim.tbl_filter(function(c)
@@ -208,7 +216,9 @@ return {
       --                                     <leader>dJ). No attach fall-through.
       local function debug_java_continue()
         local ok, dap = pcall(require, "dap")
-        if not ok then return end
+        if not ok then
+          return
+        end
         if dap.session() then
           dap.continue()
           return

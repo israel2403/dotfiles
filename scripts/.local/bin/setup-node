@@ -3,11 +3,25 @@ set -eo pipefail
 
 export NVM_DIR="$HOME/.nvm"
 
-if [ -s "/usr/share/nvm/init-nvm.sh" ]; then
+remove_nvm_incompatible_npm_config() {
+  local npmrc="$HOME/.npmrc"
+
+  if [[ -f "$npmrc" ]] && grep -Eq '^[[:space:]]*(prefix|globalconfig)[[:space:]]*=' "$npmrc"; then
+    echo "Removing nvm-incompatible prefix/globalconfig entries from $npmrc"
+    sed -i.bak '/^[[:space:]]*\(prefix\|globalconfig\)[[:space:]]*=/d' "$npmrc"
+  fi
+}
+
+remove_nvm_incompatible_npm_config
+
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+elif [ -s "/usr/share/nvm/init-nvm.sh" ]; then
   . /usr/share/nvm/init-nvm.sh
 else
-  echo "nvm init script not found at /usr/share/nvm/init-nvm.sh"
-  exit 1
+  echo "Installing nvm to $NVM_DIR"
+  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  . "$NVM_DIR/nvm.sh"
 fi
 
 nvm install --lts

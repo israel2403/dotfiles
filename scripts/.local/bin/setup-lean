@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Install and update the Lean 4 toolchain manager.
+set -euo pipefail
+
+ELAN_HOME="${ELAN_HOME:-$HOME/.elan}"
+
+if command -v elan >/dev/null 2>&1; then
+  echo ">>> Lean: updating elan and default stable toolchain"
+  elan self update || true
+  elan default stable
+  elan update stable
+else
+  echo ">>> Lean: installing elan"
+  curl -fsSL https://raw.githubusercontent.com/leanprover/elan/master/elan-init.sh | sh -s -- -y --default-toolchain stable
+fi
+
+if [[ -d "$ELAN_HOME/bin" ]]; then
+  case ":$PATH:" in
+    *":$ELAN_HOME/bin:"*) ;;
+    *) export PATH="$ELAN_HOME/bin:$PATH" ;;
+  esac
+fi
+
+lean --version
+lake --version

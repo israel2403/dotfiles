@@ -1,6 +1,4 @@
 return {
-  { import = "lazyvim.plugins.extras.lang.tailwind" },
-
   {
     "neovim/nvim-lspconfig",
     opts = {

@@ -6,7 +6,8 @@
 -- IntelliJ-style F-keys -- the layout most Java developers already have
 -- in muscle memory, and which fits entirely inside the Glove80's F5..F10:
 --
---     F5         Continue (resume) -- LazyVim default kept
+--     F5         Start / Continue (Java main-aware)
+--     F6         Toggle debugger UI
 --     F7         Step Into
 --     F8         Step Over
 --     F9         Step Out
@@ -29,12 +30,72 @@
 -- These are global (not Java-specific) because nvim-dap drives every
 -- language. If you ever change debug adapters, the same mappings apply.
 
+local function java_continue()
+  local dap = require("dap")
+  if dap.session() then
+    dap.continue()
+    return
+  end
+
+  local ok, jdtls_dap = pcall(require, "jdtls.dap")
+  if not ok then
+    vim.notify("Java debugger is not ready; wait for jdtls to attach", vim.log.levels.WARN)
+    return
+  end
+
+  vim.notify("Scanning for Java main classes...", vim.log.levels.INFO)
+  jdtls_dap.setup_dap_main_class_configs({
+    on_ready = vim.schedule_wrap(function()
+      local configurations = (dap.configurations or {}).java or {}
+      local launches = vim.tbl_filter(function(config)
+        return config.request == "launch"
+      end, configurations)
+
+      if #launches == 0 then
+        vim.notify("No Java main(String[]) found in this project", vim.log.levels.WARN)
+      elseif #launches == 1 then
+        vim.notify("Launching: " .. (launches[1].name or launches[1].mainClass or "<unnamed>"), vim.log.levels.INFO)
+        dap.run(launches[1])
+      else
+        vim.ui.select(launches, {
+          prompt = "Select Java main to debug:",
+          format_item = function(config)
+            return config.name or config.mainClass or "<unnamed>"
+          end,
+        }, function(config)
+          if config then
+            dap.run(config)
+          end
+        end)
+      end
+    end),
+  })
+end
+
+local function continue()
+  if vim.bo.filetype == "java" then
+    java_continue()
+  else
+    require("dap").continue()
+  end
+end
+
 return {
   {
     "mfussenegger/nvim-dap",
     optional = true,
     keys = {
       -- IntelliJ-style F-keys, all inside F5..F10 (Glove80-safe).
+      {
+        "<F5>",
+        continue,
+        desc = "Debug: Start / Continue",
+      },
+      {
+        "<F6>",
+        function() require("dapui").toggle({ reset = true }) end,
+        desc = "Debug: Toggle UI",
+      },
       {
         "<F7>",
         function() require("dap").step_into() end,

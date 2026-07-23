@@ -1,15 +1,11 @@
 #!/usr/bin/env bash
 # migrate-packages
-# Replay ~/dotfiles/packages/{pacman,aur}.txt on this machine.
-# Works great on a fresh Omarchy install.
-#
-# Usage:
-#   migrate-packages               # install everything
-#   migrate-packages --dry-run     # show what would happen, no changes
-
+# Replay package manifests on this machine.
+# Ubuntu/Debian: packages/apt.txt. Arch/Omarchy: packages/{pacman,aur}.txt.
 set -euo pipefail
 
 DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+APT="$DOTFILES/packages/apt.txt"
 PAC="$DOTFILES/packages/pacman.txt"
 AUR="$DOTFILES/packages/aur.txt"
 
@@ -18,31 +14,61 @@ if [[ "${1:-}" == "--dry-run" || "${1:-}" == "-n" ]]; then
     DRY_RUN=1
 fi
 
+install_apt_available() {
+    local pkg missing=() installable=()
+    for pkg in "$@"; do
+        if dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q 'install ok installed'; then
+            continue
+        fi
+        if apt-cache show "$pkg" >/dev/null 2>&1; then
+            installable+=("$pkg")
+        else
+            missing+=("$pkg")
+        fi
+    done
+
+    if [[ $DRY_RUN -eq 1 ]]; then
+        printf '  would install: %s\n' "${installable[@]}"
+    elif ((${#installable[@]})); then
+        sudo apt-get install -y "${installable[@]}"
+    fi
+
+    if ((${#missing[@]})); then
+        echo ">>> apt: unavailable in current repos, skipped: ${missing[*]}"
+    fi
+}
+
+if command -v apt-get >/dev/null 2>&1; then
+    if [[ ! -f "$APT" ]]; then
+        echo "ERROR: $APT not found." >&2
+        exit 1
+    fi
+    mapfile -t apt_pkgs < <(grep -vE '^\s*(#|$)' "$APT")
+    echo ">>> apt: ${#apt_pkgs[@]} packages to install (or already present)."
+    if [[ $DRY_RUN -eq 0 ]]; then
+        sudo apt-get update
+    fi
+    install_apt_available "${apt_pkgs[@]}"
+    echo ">>> Done."
+    exit 0
+fi
+
+if ! command -v pacman >/dev/null 2>&1; then
+    echo "ERROR: unsupported package manager." >&2
+    exit 1
+fi
+
 if [[ ! -f "$PAC" ]]; then
     echo "ERROR: $PAC not found. Clone your dotfiles repo first." >&2
     exit 1
 fi
 
-# -----------------------------------------------------------------------------
-# Refresh mirrors + upgrade first so we install against current packages.
-# -----------------------------------------------------------------------------
-#
-# --ask=4 is a pacman bitmask (4 = ConflictPkg) that pre-answers YES to
-# package-conflict prompts. With --noconfirm alone, conflict prompts default
-# to N and the whole transaction is aborted -- which is what hit us when an
-# AUR -bin variant (e.g. localsend-bin) was already installed and pacman.txt
-# pulls in its official-repo counterpart (localsend). With --ask=4, pacman
-# silently removes the conflicting package and proceeds.
 PACMAN_FLAGS=(--needed --noconfirm --ask=4)
 
 if [[ $DRY_RUN -eq 0 ]]; then
     sudo pacman -Syu --noconfirm --ask=4
 fi
 
-# -----------------------------------------------------------------------------
-# Pacman (official repos).
-# Skip blank lines and '#' comments.
-# -----------------------------------------------------------------------------
 mapfile -t pac_pkgs < <(grep -vE '^\s*(#|$)' "$PAC")
 echo ">>> pacman: ${#pac_pkgs[@]} packages to install (or already present)."
 if [[ $DRY_RUN -eq 1 ]]; then
@@ -52,10 +78,6 @@ else
     sudo pacman -S "${PACMAN_FLAGS[@]}" "${pac_pkgs[@]}"
 fi
 
-# -----------------------------------------------------------------------------
-# AUR helper: use yay if present, fall back to paru.
-# If neither exists yet, install yay from source.
-# -----------------------------------------------------------------------------
 aur_helper=""
 for helper in yay paru; do
     if command -v "$helper" >/dev/null 2>&1; then
@@ -79,7 +101,6 @@ if [[ -s "$AUR" ]]; then
     if [[ $DRY_RUN -eq 1 ]]; then
         printf '  would install: %s\n' "${aur_pkgs[@]}"
     else
-        # AUR helpers honour the same --ask flag (passed through to pacman).
         "$aur_helper" -S --needed --noconfirm --ask=4 "${aur_pkgs[@]}"
     fi
 fi

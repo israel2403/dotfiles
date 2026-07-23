@@ -88,6 +88,39 @@ local function get_main_class()
   return main_class
 end
 
+local function file_exists(path)
+  return vim.fn.filereadable(path) == 1
+end
+
+local function gradle_executable(project_root)
+  if file_exists(project_root .. "/gradlew") then
+    return "./gradlew"
+  end
+  if file_exists(project_root .. "/../gradlew") then
+    return "../gradlew"
+  end
+  return "gradle"
+end
+
+local function build_run_options(project_root, main_class)
+  if file_exists(project_root .. "/pom.xml") then
+    return {
+      { label = " Run (skip tests)", cmd = "mvn -q compile exec:java -DskipTests -Dexec.mainClass=\"" .. main_class .. "\"" },
+      { label = "󰤑 Run (with tests)", cmd = "mvn -q test exec:java -Dexec.mainClass=\"" .. main_class .. "\"" },
+    }
+  end
+
+  if file_exists(project_root .. "/build.gradle") or file_exists(project_root .. "/build.gradle.kts") then
+    local gradle = gradle_executable(project_root)
+    return {
+      { label = " Run (skip tests)", cmd = gradle .. " -q runJavaMain -PmainClass=\"" .. main_class .. "\"" },
+      { label = "󰤑 Run (with tests)", cmd = gradle .. " -q test runJavaMain -PmainClass=\"" .. main_class .. "\"" },
+    }
+  end
+
+  return nil
+end
+
 -- Store last run so we can reopen it
 local last_run_term = nil
 
@@ -104,10 +137,11 @@ local function run_java_main()
     return
   end
 
-  local options = {
-    { label = " Run (skip tests)", cmd = "mvn -q compile exec:java -DskipTests -Dexec.mainClass=\"" .. main_class .. "\"" },
-    { label = "󰤑 Run (with tests)", cmd = "mvn -q test exec:java -Dexec.mainClass=\"" .. main_class .. "\"" },
-  }
+  local options = build_run_options(project_root, main_class)
+  if not options then
+    vim.notify("No Maven/Gradle project found", vim.log.levels.ERROR)
+    return
+  end
 
   vim.ui.select(options, {
     prompt = "Run: " .. main_class,
@@ -145,6 +179,9 @@ local function reopen_last_run()
     vim.notify("No previous run to reopen", vim.log.levels.INFO)
   end
 end
+
+vim.keymap.set("n", "<leader>Jr", run_java_main, { desc = "Run main class" })
+vim.keymap.set("n", "<leader>Jo", reopen_last_run, { desc = "Reopen last run" })
 
 return {
   {

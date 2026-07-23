@@ -1,25 +1,57 @@
 #!/usr/bin/env bash
 # bootstrap-system
-# Install the minimum packages needed to clone this environment and bring up
-# the migrate / sync tooling on a fresh Arch / Omarchy machine.
+# Install the minimum system packages needed by these dotfiles.
+# Supports Ubuntu/Debian via apt and Arch/Omarchy via pacman.
 set -euo pipefail
 
-sudo pacman -Syu --noconfirm
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+APT_LIST="$DOTFILES/packages/apt.txt"
 
-sudo pacman -S --needed --noconfirm \
-  stow \
-  git \
-  curl \
-  unzip \
-  zip \
-  jq \
-  base-devel \
-  github-cli \
-  docker \
-  docker-buildx \
-  nvm \
-  openssh \
-  rsync
+install_apt_available() {
+  local pkg missing=() installable=()
+  for pkg in "$@"; do
+    if dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q 'install ok installed'; then
+      continue
+    fi
+    if apt-cache show "$pkg" >/dev/null 2>&1; then
+      installable+=("$pkg")
+    else
+      missing+=("$pkg")
+    fi
+  done
 
-# Make sure sshd is running so sync-projects / bootstrap-new-machine work.
-sudo systemctl enable --now sshd
+  if ((${#installable[@]})); then
+    sudo apt-get install -y "${installable[@]}"
+  fi
+  if ((${#missing[@]})); then
+    echo ">>> apt: unavailable in current repos, skipped: ${missing[*]}"
+  fi
+}
+
+if command -v apt-get >/dev/null 2>&1; then
+  echo ">>> Ubuntu/Debian system bootstrap"
+  sudo apt-get update
+  sudo apt-get upgrade -y
+
+  if [[ -f "$APT_LIST" ]]; then
+    mapfile -t apt_pkgs < <(grep -vE '^\s*(#|$)' "$APT_LIST")
+  else
+    apt_pkgs=(git stow curl unzip zip jq build-essential openssh-client openssh-server rsync)
+  fi
+  install_apt_available "${apt_pkgs[@]}"
+elif command -v pacman >/dev/null 2>&1; then
+  echo ">>> Arch/Omarchy system bootstrap"
+  sudo pacman -Syu --noconfirm
+  sudo pacman -S --needed --noconfirm \
+    stow git curl unzip zip jq base-devel github-cli docker docker-buildx \
+    docker-compose nvm openssh rsync neovim fzf ripgrep zsh
+else
+  echo "ERROR: unsupported package manager. Install git, stow, curl, unzip, zip, jq, build tools, openssh, and rsync manually." >&2
+  exit 1
+fi
+
+if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files ssh.service >/dev/null 2>&1; then
+  sudo systemctl enable --now ssh || true
+elif command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files sshd.service >/dev/null 2>&1; then
+  sudo systemctl enable --now sshd || true
+fi

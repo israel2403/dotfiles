@@ -8,12 +8,23 @@ echo "==> bootstrap-zsh"
 # ---------------------------------------------------------------------------
 # 1. Ensure zsh is installed
 # ---------------------------------------------------------------------------
-if ! command -v zsh >/dev/null 2>&1; then
-  echo "--> installing zsh"
-  sudo pacman -S --needed --noconfirm zsh
-else
-  echo "--> zsh already installed ($(zsh --version))"
-fi
+install_zsh_packages() {
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "--> installing/checking zsh packages with apt"
+    sudo apt-get update
+    sudo apt-get install -y zsh git curl fzf command-not-found
+  elif command -v pacman >/dev/null 2>&1; then
+    echo "--> installing/checking zsh packages with pacman"
+    sudo pacman -S --needed --noconfirm zsh git curl fzf
+  else
+    echo "ERROR: unsupported package manager. Install zsh, git, curl, and fzf manually." >&2
+    exit 1
+  fi
+
+  echo "--> zsh ready ($(zsh --version))"
+}
+
+install_zsh_packages
 
 # ---------------------------------------------------------------------------
 # 2. Install Oh My Zsh (preserve any existing .zshrc)

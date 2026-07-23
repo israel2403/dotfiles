@@ -8,5 +8,8 @@ return {
     version = "*",
     event = "VeryLazy",
     opts = {},
+    keys = {
+      { "<leader>w", "<Plug>(nvim-surround-visual)", mode = "x", desc = "Wrap selection" },
+    },
   },
 }

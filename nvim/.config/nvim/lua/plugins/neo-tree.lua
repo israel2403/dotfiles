@@ -4,7 +4,8 @@ return {
 		{
 			"<leader>e",
 			function()
-				require("neo-tree.command").execute({ action = "focus", dir = LazyVim.root() })
+				local start_dir = vim.g.nvim_start_cwd or vim.uv.cwd()
+				require("neo-tree.command").execute({ action = "focus", dir = start_dir })
 			end,
 			desc = "Explorer NeoTree (Focus)",
 		},

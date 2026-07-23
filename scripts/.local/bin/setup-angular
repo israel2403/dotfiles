@@ -2,7 +2,27 @@
 set -eo pipefail
 
 export NVM_DIR="$HOME/.nvm"
-. /usr/share/nvm/init-nvm.sh
+
+remove_nvm_incompatible_npm_config() {
+  local npmrc="$HOME/.npmrc"
+
+  if [[ -f "$npmrc" ]] && grep -Eq '^[[:space:]]*(prefix|globalconfig)[[:space:]]*=' "$npmrc"; then
+    echo "Removing nvm-incompatible prefix/globalconfig entries from $npmrc"
+    sed -i.bak '/^[[:space:]]*\(prefix\|globalconfig\)[[:space:]]*=/d' "$npmrc"
+  fi
+}
+
+remove_nvm_incompatible_npm_config
+
+if [ -s "$NVM_DIR/nvm.sh" ]; then
+  . "$NVM_DIR/nvm.sh"
+elif [ -s "/usr/share/nvm/init-nvm.sh" ]; then
+  . /usr/share/nvm/init-nvm.sh
+else
+  echo "nvm not found; running setup-node first"
+  setup-node
+  . "$NVM_DIR/nvm.sh"
+fi
 
 nvm use --lts
 npm install -g @angular/cli

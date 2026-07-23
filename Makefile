@@ -1,22 +1,16 @@
 # ~/dotfiles/Makefile
 # Convenience entrypoints. Run from anywhere inside ~/dotfiles:
 #
-#     make            # alias for `make sync`
+#     make            # alias for `make sync` (Arch/Omarchy daily command)
+#     make ubuntu     # stow Ubuntu-safe packages + run Ubuntu-aware bootstrap
 #     make sync       # pull + restow + idempotent helpers (DAILY command)
 #     make force-sync # like `sync` but DELETES divergent local files (no backup)
-#     make bootstrap  # full new-machine bootstrap (FIRST-TIME ONLY)
+#     make bootstrap  # full new-machine Omarchy bootstrap (FIRST-TIME ONLY)
 #     make stow       # stow every package, no git pull, no helpers
 #     make restow     # stow --restow every package (refresh links)
 #     make unstow     # remove every symlink stow has created
 #     make status     # show git status + which packages are stowed
 #     make dry-run    # `make sync` but read-only (no writes)
-#
-# Implementation notes:
-# * Every target shells out to a helper script in scripts/.local/bin/, which
-#   means ~/dotfiles/Makefile is the user-facing surface and the scripts can
-#   be called individually too (and from cron, hooks, etc.).
-# * `sync` is idempotent on purpose: re-running it costs nothing if everything
-#   is up to date.
 
 SHELL := /bin/bash
 DOTFILES := $(abspath $(CURDIR))
@@ -26,11 +20,13 @@ PACKAGES := $(shell find $(DOTFILES) -mindepth 1 -maxdepth 1 -type d \
             ! -name '.git' ! -name 'packages' \
             -printf '%f ')
 
+UBUNTU_PACKAGES := bash git nvim lazygit sdkman nvm lean scripts zsh qutebrowser fff ghostty
+
 .DEFAULT_GOAL := sync
-.PHONY: sync force-sync bootstrap stow restow unstow status dry-run help
+.PHONY: sync force-sync bootstrap ubuntu ubuntu-stow stow restow unstow status dry-run help
 
 help:
-	@sed -n '2,18p' $(firstword $(MAKEFILE_LIST)) | sed 's/^# \{0,1\}//'
+	@sed -n '2,15p' $(firstword $(MAKEFILE_LIST)) | sed 's/^# \{0,1\}//'
 
 sync:
 	@$(SCRIPTS)/dotfiles-sync
@@ -43,6 +39,12 @@ dry-run:
 
 bootstrap:
 	@$(SCRIPTS)/bootstrap-new-machine
+
+ubuntu: ubuntu-stow
+	@$(SCRIPTS)/bootstrap-dev
+
+ubuntu-stow:
+	@cd $(DOTFILES) && stow --target=$$HOME $(UBUNTU_PACKAGES)
 
 stow:
 	@cd $(DOTFILES) && stow --target=$$HOME $(PACKAGES)

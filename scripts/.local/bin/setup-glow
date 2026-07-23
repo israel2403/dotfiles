@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Install Glow, a terminal Markdown renderer.
+set -euo pipefail
+
+if command -v glow >/dev/null 2>&1; then
+  glow --version
+  exit 0
+fi
+
+if command -v pacman >/dev/null 2>&1; then
+  sudo pacman -S --needed glow
+elif command -v brew >/dev/null 2>&1; then
+  brew install glow
+elif command -v snap >/dev/null 2>&1; then
+  sudo snap install glow
+else
+  echo "ERROR: install Glow manually from https://github.com/charmbracelet/glow" >&2
+  exit 1
+fi
+
+glow --version

@@ -4,14 +4,19 @@ return {
     lazy = false,
     priority = 1000,
     dependencies = {
-      "nvim-telescope/telescope.nvim",
       "nvim-lua/plenary.nvim",
+      "MunifTanjim/nui.nvim",
+      "nvim-telescope/telescope.nvim",
     },
     config = function()
       require("spring-initializr").setup()
+      vim.keymap.set("n", "<leader>si", "<cmd>SpringInitializr<cr>", { desc = "Spring Initializr" })
     end,
+  },
+  {
+    "folke/snacks.nvim",
     keys = {
-      { "<leader>si", "<cmd>SpringInitializr<cr>", desc = "Spring Initializr" },
+      { "<leader>si", false },
     },
   },
 }

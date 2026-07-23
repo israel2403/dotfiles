@@ -111,6 +111,10 @@ local function init_project()
   end
 end
 
+vim.keymap.set("n", "<leader>Pv", show_venv, { desc = "Show venv info" })
+vim.keymap.set("n", "<leader>Pc", create_venv, { desc = "Create venv" })
+vim.keymap.set("n", "<leader>Pi", init_project, { desc = "Init Python project" })
+
 return {
   -- Pyright: enhanced settings + venv auto-detection
   {

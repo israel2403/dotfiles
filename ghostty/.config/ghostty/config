@@ -1,123 +1,31 @@
-# Ghostty Configuration - Omarchy-inspired
-# Modern terminal setup with vim integration
-# Tested with Ghostty v1.3.1
+theme = TokyoNight Night
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# WINDOW & APPEARANCE
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Window behavior
-window-padding-x = 8
-window-padding-y = 8
-window-decoration = client
-
-# Cursor styling
-cursor-style = block
-cursor-style-blink = true
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# FONT CONFIGURATION
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Primary font - use a monospace font with good ligature support
-font-family = JetBrains Mono
+font-family = "JetBrains Mono"
 font-size = 12
+font-feature = calt, liga, dlig
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# THEME: Tokyo Night (Default Omarchy-compatible theme)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+command = /usr/bin/zsh
 
-# Tokyo Night - Dark, professional color scheme
-background = 1a1b26
-foreground = c0caf5
+window-padding-x = 10
+window-padding-y = 10
 
-# Cursor color (single option in v1.3.1)
-cursor = 7aa2f7
+background-blur-radius = 12
+background-opacity = 0.85
 
-# Color palette (Tokyo Night - ANSI colors)
-palette = 0=#15202b
-palette = 1=#f7768e
-palette = 2=#9ece6a
-palette = 3=#ffc777
-palette = 4=#7aa2f7
-palette = 5=#bb9af7
-palette = 6=#7dcfff
-palette = 7=#a9b1d6
-palette = 8=#565f89
-palette = 9=#f7768e
-palette = 10=#9ece6a
-palette = 11=#ffc777
-palette = 12=#7aa2f7
-palette = 13=#bb9af7
-palette = 14=#7dcfff
-palette = 15=#c0caf5
+mouse-hide-while-typing = true
+mouse-scroll-multiplier = 2
+copy-on-select = clipboard
 
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# KEYBINDINGS - Vim-like navigation
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Alt+Enter for fullscreen
 keybind = alt+enter=toggle_fullscreen
-
-# Font zoom
-keybind = alt+equal=increase_font_size
-keybind = alt+minus=decrease_font_size
+keybind = alt+f=esc:f
+keybind = alt+==increase_font_size:1
+keybind = alt+-=decrease_font_size:1
 keybind = alt+0=reset_font_size
-
-# Tab management
-keybind = ctrl+t=new_tab
-keybind = ctrl+w=close_tab
-keybind = ctrl+pagedown=next_tab
-keybind = ctrl+pageup=previous_tab
-
-# Window management
+keybind = ctrl+shift+t=new_tab
+keybind = ctrl+w=close_tab:this
+keybind = ctrl+page_down=next_tab
+keybind = ctrl+page_up=previous_tab
 keybind = ctrl+n=new_window
-
-# Copy/Paste
-keybind = ctrl+shift+c=copy
-keybind = ctrl+shift+v=paste
-
-# Search
-keybind = ctrl+f=show_search
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# SHELL & ENVIRONMENT
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Use bash as default shell (inherited from ~/.bashrc)
-shell-integration = bash
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# SCROLLBACK & HISTORY
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Keep 3000 lines of scrollback
-scrollback-size = 3000
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# PERFORMANCE & RENDERING
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Graphics backend (auto-detect: wayland, x11, or fallback)
-# graphics-protocol = auto
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# MOUSE & INPUT
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Enable mouse support
-mouse = true
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# TRANSPARENCY & EFFECTS (optional)
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# Optional: Enable background blur (compositor dependent)
-# background-blur = 5
-
-# Optional: Enable transparency (adjust to your preference)
-# background-opacity = 0.95
-
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# END OF CONFIG
-# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+keybind = ctrl+shift+c=copy_to_clipboard:mixed
+keybind = ctrl+shift+v=paste_from_clipboard
+keybind = ctrl+f=start_search

@@ -10,7 +10,7 @@
 #   executable on PATH it works regardless of which shell launches fff.
 #
 # Dispatch table:
-#   *.pdf, *.epub, *.djvu      -> zathura
+#   *.pdf, *.epub, *.djvu      -> evince
 #   *.png, *.jpg, …            -> imv
 #   *.mp4, *.mkv, …            -> mpv (xdg-open fallback)
 #   text-like / source files   -> nvim
@@ -38,7 +38,7 @@ case "$lower" in
         exec imv "$file"
         ;;
     *.pdf|*.epub|*.djvu)
-        exec zathura "$file"
+        exec evince "$file"
         ;;
     *.mp4|*.mkv|*.avi|*.webm|*.mov)
         if command -v mpv >/dev/null 2>&1; then
@@ -54,7 +54,7 @@ case "$lower" in
         ;;
     *)
         # Fallback: text-like via nvim, otherwise xdg-open (which now picks up
-        # zathura for PDFs via mimeapps.list).
+        # Evince for PDFs via mimeapps.list).
         if file -b --mime-type "$file" | grep -q "^text/"; then
             exec nvim "$file"
         else

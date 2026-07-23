@@ -1,8 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-sudo systemctl enable docker
-sudo systemctl start docker
+if ! command -v docker >/dev/null 2>&1; then
+  if command -v apt-get >/dev/null 2>&1; then
+    sudo apt-get update
+    sudo apt-get install -y docker.io docker-compose-v2
+  elif command -v pacman >/dev/null 2>&1; then
+    sudo pacman -S --needed --noconfirm docker docker-buildx docker-compose
+  else
+    echo "ERROR: unsupported package manager. Install Docker manually." >&2
+    exit 1
+  fi
+fi
+
+if command -v systemctl >/dev/null 2>&1; then
+  sudo systemctl enable --now docker
+fi
 
 if ! getent group docker >/dev/null; then
   sudo groupadd docker

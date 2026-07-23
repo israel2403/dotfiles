@@ -9,6 +9,24 @@
 
 [core]
 	editor = nvim
+	pager = delta
+
+# Delta is the normal pager for Git commands. Interactive fzf previews use
+# `git --no-pager` locally so a nested pager can never block the selector.
+[interactive]
+	diffFilter = delta --color-only
+
+[delta]
+	navigate = true
+	line-numbers = true
+	side-by-side = false
+
+[merge]
+	conflictStyle = zdiff3
+
+[user]
+	name = Israel Huerta
+	email = israelhf24@gmail.com
 
 [includeIf "gitdir:~/projects/personal/"]
     path = ~/.gitconfig-personal

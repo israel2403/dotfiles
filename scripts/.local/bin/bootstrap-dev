@@ -4,8 +4,14 @@ set -euo pipefail
 bootstrap-system
 bootstrap-docker
 bootstrap-git
+setup-lazygit
 setup-java
 setup-node
 setup-angular
+setup-lean
+setup-glow
+setup-ghostty
+bootstrap-zsh
 
 echo "Developer environment ready."
+echo "Log out and back in so zsh and docker group changes apply."

@@ -53,7 +53,15 @@ c.colors.webpage.darkmode.policy.images = "never"
 c.colors.webpage.darkmode.policy.page = "smart"
 c.colors.webpage.darkmode.contrast = 0.0
 c.colors.webpage.darkmode.threshold.background = 205
-c.colors.webpage.darkmode.threshold.foreground = 150
+c.colors.webpage.darkmode.threshold.text = 150
+
+for _pattern in (
+    "https://chatgpt.com/*",
+    "https://github.com/*",
+    "https://platform.openai.com/*",
+    "https://www.notion.so/*",
+):
+    config.set("content.javascript.can_access_clipboard", True, _pattern)
 
 # Silently block third-party resources with invalid / expired certificates
 # (e.g. the expired img.devrant.com image embedded on random pages) instead

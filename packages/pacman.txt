@@ -44,6 +44,7 @@ gnome-calculator
 gnome-disk-utility
 gnome-keyring
 gnome-themes-extra
+glow
 gpu-screen-recorder
 graphviz
 grim
@@ -129,6 +130,7 @@ qutebrowser
 ripgrep
 ruby
 rust
+rust-analyzer
 satty
 sddm
 signal-desktop

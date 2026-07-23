@@ -1,0 +1,3 @@
+# Intentionally empty: this package may stow ~/.config/ghostty on Ubuntu.
+# The repo-wide ignore protects Ghostty from accidental Omarchy syncs unless
+# this package is explicitly stowed.

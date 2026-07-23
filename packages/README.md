@@ -1,26 +1,28 @@
 # Package manifests
 
-Two flat lists used by `migrate-packages` to recreate this system on a new
-machine (e.g. a fresh Omarchy install).
+Flat package lists used by `migrate-packages` to recreate a machine.
 
+* `apt.txt` — Ubuntu/Debian packages installed with `apt-get` when available.
+  Packages missing from the configured Ubuntu repositories are skipped with a
+  warning instead of aborting the whole bootstrap.
 * `pacman.txt` — explicit packages from the official Arch repositories.
-  `qutebrowser` is included intentionally.
-* `aur.txt` — foreign / AUR packages.
+* `aur.txt` — foreign / AUR packages for Arch/Omarchy.
 
-## Regenerate (run on the source machine)
+## Replay
+
+```bash
+migrate-packages            # installs the manifest for this OS
+migrate-packages --dry-run  # preview only
+```
+
+## Regenerate Arch Lists
 
 ```bash
 pacman -Qqen | sort -u > ~/dotfiles/packages/pacman.txt
 pacman -Qqm  | sort -u > ~/dotfiles/packages/aur.txt
-# keep qutebrowser pinned even if it's somehow uninstalled locally
-grep -qx qutebrowser ~/dotfiles/packages/pacman.txt \
-  || { echo qutebrowser >> ~/dotfiles/packages/pacman.txt; \
-       sort -u -o ~/dotfiles/packages/pacman.txt ~/dotfiles/packages/pacman.txt; }
 ```
 
-## Replay (run on the destination machine)
+## Maintain Ubuntu List
 
-```bash
-migrate-packages            # installs everything in both files
-migrate-packages --dry-run  # preview only
-```
+Edit `packages/apt.txt` manually. Keep it focused on packages available from
+Ubuntu repositories; use SDKMAN/NVM scripts for Java and Node.

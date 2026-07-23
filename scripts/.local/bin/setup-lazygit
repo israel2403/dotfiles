@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if command -v lazygit >/dev/null 2>&1; then
+  echo "lazygit already installed: $(lazygit --version)"
+  exit 0
+fi
+
+if command -v apt-cache >/dev/null 2>&1 && apt-cache show lazygit >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y lazygit
+  exit 0
+fi
+
+if ! command -v jq >/dev/null 2>&1; then
+  echo "jq is required to install lazygit from GitHub releases." >&2
+  exit 1
+fi
+
+arch="$(uname -m)"
+case "$arch" in
+  x86_64|amd64) asset_arch="x86_64" ;;
+  aarch64|arm64) asset_arch="arm64" ;;
+  *) echo "Unsupported architecture for lazygit release install: $arch" >&2; exit 1 ;;
+esac
+
+version="$(curl -fsSL https://api.github.com/repos/jesseduffield/lazygit/releases/latest | jq -r '.tag_name' | sed 's/^v//')"
+url="https://github.com/jesseduffield/lazygit/releases/download/v${version}/lazygit_${version}_Linux_${asset_arch}.tar.gz"
+
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+
+curl -fsSL "$url" -o "$tmp/lazygit.tar.gz"
+tar -xzf "$tmp/lazygit.tar.gz" -C "$tmp" lazygit
+mkdir -p "$HOME/.local/bin"
+install -m 0755 "$tmp/lazygit" "$HOME/.local/bin/lazygit"
+
+lazygit --version

@@ -1,203 +1,230 @@
 # Dotfiles
 
-Personal dotfiles managed with [GNU Stow](https://www.gnu.org/software/stow/) on Arch Linux.
+Personal dotfiles managed with GNU Stow. This repo supports two flows:
 
-## Prerequisites
+* Ubuntu 24 laptops: shell, Git, Neovim, Lean 4, Java, Node/npm, Docker,
+  qutebrowser, fff, Ghostty config, and common CLI tools.
+* Arch/Omarchy machines: existing Omarchy bootstrap and package migration.
 
-```bash
-sudo pacman -S --needed git stow
-```
-
-## Installation
+## Ubuntu 24 Quick Start
 
 ```bash
-git clone <your-repo-url> ~/dotfiles
-cd ~/dotfiles
-```
+sudo apt update
+sudo apt install -y git stow curl
 
-### Stow individual packages
-
-```bash
-stow bash      # → ~/.bashrc
-stow zsh       # → ~/.zshrc
-stow git       # → ~/.gitconfig, ~/.gitconfig-personal, ~/.gitconfig-school
-stow nvm       # → ~/.config/profile.d/nvm.sh
-stow sdkman    # → ~/.config/profile.d/sdkman.sh
-stow scripts   # → ~/.local/bin/bootstrap-*, setup-*, doctor-*
-```
-
-### Stow all packages at once
-
-```bash
-stow */
-```
-
-### Unstow a package
-
-```bash
-stow -D <package>
-```
-
-### Preview changes (dry run)
-
-```bash
-stow -n -v <package>
-```
-
-## Packages
-
-### bash
-
-- `.bashrc` — PATH, dynamic `~/.config/profile.d/` sourcing, and aliases
-
-### zsh
-
-- `.zshrc` — Oh My Zsh + **Powerlevel10k** theme + productivity plugins
-  (`git`, `docker`, `docker-compose`, `sudo`, `archlinux`, `nvm`, `node`,
-  `npm`, `fzf`, `dirhistory`, `extract`, `systemd`, `colored-man-pages`,
-  `zsh-autosuggestions`, `zsh-completions`, `zsh-syntax-highlighting`).
-  Provides macOS-style grid menu completion (arrow-key selectable, case
-  insensitive, colorized).
-- Install with `bootstrap-zsh` (installs zsh + OMZ + p10k + external plugins
-  and sets zsh as the login shell).
-- After first launch, run `p10k configure` to customize the prompt.
-
-### git
-
-Git configuration with conditional includes per project directory.
-
-- `.gitconfig` — Global settings (editor, push, pull)
-- `.gitconfig-personal` — Identity for `~/projects/personal/`
-- `.gitconfig-school` — Identity for `~/projects/school/`
-
-### nvm
-
-- `.config/profile.d/nvm.sh` — NVM initialization (auto-sourced by shell rc)
-
-### sdkman
-
-- `.config/profile.d/sdkman.sh` — SDKMAN initialization (auto-sourced by shell rc)
-
-### qutebrowser
-
-- `.config/qutebrowser/config.py` — manual qutebrowser config (keybindings, dark mode, TLS, session restore). See `qutebrowser/README.md` for what is intentionally left out.
-
-### scripts
-
-Bootstrap and setup scripts installed to `~/.local/bin/`.
-
-- `bootstrap-dev` — Full dev environment setup (runs all others)
-- `bootstrap-system` — Core packages via pacman (+ `stow`, `openssh`, `rsync`, enables `sshd`)
-- `bootstrap-docker` — Docker service and group setup
-- `bootstrap-git` — Git identity and project directories
-- `bootstrap-zsh` — Install zsh + Oh My Zsh + Powerlevel10k + plugins and set zsh as login shell
-- `bootstrap-new-machine` — One-shot clone of this environment onto a fresh Omarchy install
-- `migrate-packages` — Replay `packages/{pacman,aur}.txt` on the current machine
-- `sync-projects` — `rsync` over SSH to push/pull `~/projects/` between machines
-- `setup-java` — Java 21 Temurin via SDKMAN
-- `setup-node` — Node.js LTS via NVM
-- `setup-angular` — Angular CLI via npm
-- `doctor-dev-env` — Verify all installed tool versions
-
-### packages
-
-Version-controlled package inventory. See `packages/README.md`.
-
-- `packages/pacman.txt` — explicit packages from the official repos (includes `qutebrowser`).
-- `packages/aur.txt` — foreign / AUR packages.
-
-## Adding a New Tool
-
-The shell rc files automatically source every `*.sh` file in `~/.config/profile.d/`.
-To integrate a new tool (e.g. Rust):
-
-```bash
-mkdir -p ~/dotfiles/rust/.config/profile.d
-# create rust/.config/profile.d/rust.sh with your init logic
-cd ~/dotfiles && stow rust
-```
-
-No need to edit `.bashrc` or `.zshrc`.
-
-## Quick Start (new machine)
-
-```bash
-# 1. Install prerequisites
-sudo pacman -S --needed git stow
-
-# 2. Clone and enter the repo
-git clone https://github.com/<your-username>/dotfiles ~/dotfiles
+git clone https://github.com/israel2403/dotfiles.git ~/dotfiles
 cd ~/dotfiles
 
-# 3. Stow everything (--adopt handles existing files like .bashrc)
-stow --adopt */
-git checkout .
+make ubuntu
+```
 
-# 4. Bootstrap the full dev environment
+`make ubuntu` stows only the Ubuntu-safe packages:
+
+```bash
+bash git nvim lazygit sdkman nvm lean scripts zsh qutebrowser fff ghostty
+```
+
+Then it runs:
+
+```bash
+bootstrap-system   # apt packages: git, stow, nvim, docker, qutebrowser, fonts, etc.
+bootstrap-docker   # enable Docker and add your user to the docker group
+bootstrap-git      # project directories and global Git defaults
+setup-lazygit      # lazygit from apt when available, otherwise GitHub release
+setup-java         # SDKMAN + Java 21 + Maven + Gradle
+setup-node         # NVM + latest Node LTS + npm
+setup-angular      # Angular CLI through npm
+setup-lean         # Lean 4 toolchain through elan
+setup-glow         # terminal Markdown renderer for Ghostty/Zellij
+setup-ghostty      # Ghostty package when available + stowed config
+bootstrap-zsh      # Oh My Zsh + Powerlevel10k + zsh plugins
+```
+
+After it finishes, log out and back in so the Docker group and login shell
+changes apply.
+
+If you want to stow manually on Ubuntu:
+
+```bash
+cd ~/dotfiles
+stow --target="$HOME" bash git nvim lazygit sdkman nvm lean scripts zsh qutebrowser fff ghostty
 bootstrap-dev
 ```
 
-## Clone this whole environment onto a fresh Omarchy install
-
-**Scope guarantee.** The migration only carries **your env/shell files** and
-**`~/projects/`**. It intentionally never touches Omarchy- or machine-specific
-configuration such as `~/.config/hypr/monitors.conf`, waybar, mako, walker,
-alacritty, ghostty, kitty, sddm, or anything under `~/.config/omarchy/`. These
-paths are listed in `.stow-global-ignore` at the repo root, and
-`bootstrap-new-machine` runs a `stow -n` dry-run first and aborts if any
-proposed symlink would land in one of them.
-
-High-level flow (detailed steps in `scripts/.local/bin/bootstrap-new-machine`):
+## Arch / Omarchy Quick Start
 
 ```bash
-# -- ON THE NEW MACHINE --
-sudo pacman -S --needed git stow openssh rsync
-sudo systemctl enable --now sshd
+sudo pacman -S --needed git stow
+
 git clone https://github.com/israel2403/dotfiles.git ~/dotfiles
-cd ~/dotfiles && stow scripts   # so the helpers are on PATH
-bootstrap-new-machine           # stows the rest + runs migrate-packages
-
-# -- ON THE OLD MACHINE --
-sync-projects push <user>@<new-machine-ip>
+cd ~/dotfiles
+make bootstrap
 ```
 
-`bootstrap-new-machine` will also generate an SSH key if one doesn't exist
-yet and print the public key so you can paste it into GitHub (and into
-`~/.ssh/authorized_keys` on the old machine if pulling).
+`make bootstrap` intentionally remains the Omarchy/new-machine flow. Do not use
+it on Ubuntu.
 
-## Directory Structure
+## Common Commands
 
+```bash
+make ubuntu-stow  # stow only the Ubuntu-safe package set
+make stow         # stow every package in the repo
+make restow       # restow every package
+make unstow       # unstow every package
+make status       # show repo status and symlinks into ~/dotfiles
 ```
-dotfiles/
-├── bash/
-│   └── .bashrc
-├── git/
-│   ├── .gitconfig
-│   ├── .gitconfig-personal
-│   └── .gitconfig-school
-├── nvm/
-│   └── .config/profile.d/nvm.sh
-├── packages/
-│   ├── pacman.txt
-│   └── aur.txt
-├── qutebrowser/
-│   └── .config/qutebrowser/config.py
-├── scripts/
-│   └── .local/bin/
-│       ├── bootstrap-dev
-│       ├── bootstrap-docker
-│       ├── bootstrap-git
-│       ├── bootstrap-new-machine
-│       ├── bootstrap-system
-│       ├── bootstrap-zsh
-│       ├── doctor-dev-env
-│       ├── migrate-packages
-│       ├── setup-angular
-│       ├── setup-java
-│       ├── setup-node
-│       └── sync-projects
-├── sdkman/
-│   └── .config/profile.d/sdkman.sh
-└── zsh/
-    └── .zshrc
+
+On Ubuntu, prefer `make ubuntu` or `make ubuntu-stow`; `make stow` includes all
+packages and can include desktop-specific configs.
+
+## Packages
+
+### Shells
+
+* `bash/.bashrc` sources every `*.sh` file under `~/.config/profile.d/`.
+* `zsh/.zshrc` initializes Oh My Zsh and explicitly loads focused modules from
+  `~/.config/zsh/functions`, `~/.config/zsh/integrations`, and
+  `~/.config/zsh/keybindings.zsh`.
+* `fff/.config/profile.d/fff.sh` keeps the shared FFF environment available to
+  Bash; native Zsh wrappers live in `integrations/fff.zsh`.
+
+Zsh sources each module explicitly in responsibility order: general functions,
+tool integrations, then keybindings. Because all module files belong to the
+`zsh` Stow package, a missing file is treated as a startup error rather than
+being silently ignored.
+
+### Git Workflow
+
+Interactive Git workflows use the `gf` prefix to avoid common alias collisions:
+
+| Command | Purpose |
+| --- | --- |
+| `gfshow` | Inspect a historical commit |
+| `gfdiff` | Compare a base commit with a target commit |
+| `gfbranch` | Select and switch branches |
+| `gfdetach` | Temporarily inspect an old project version |
+| `gfreturn` | Return to the previous branch |
+| `gfnewbranch` | Start a new branch from an old commit |
+| `gfrestorefile` | Restore one file from a historical commit |
+
+Recommended workflow for course exercises:
+
+1. Complete one meaningful version of an exercise.
+2. Commit it with a descriptive message.
+3. Modify the code to implement the next version.
+4. Commit the next version.
+5. Use `gfshow` to inspect an implementation.
+6. Use `gfdiff` to compare implementations.
+7. Use `gfdetach` only for temporary read-only inspection.
+8. Use `gfnewbranch` when experimentation should continue from an old version.
+9. Use `gfreturn` to leave detached HEAD safely.
+
+For example:
+
+```text
+java/loops: implement while-loop version
+java/loops: replace with do-while version
+java/loops: refactor using for-loop
+java/loops: extract validation method
 ```
+
+This preserves each meaningful implementation in Git history instead of keeping
+obsolete code commented out.
+
+The selectors return complete object IDs and full refs, so display formatting
+never becomes command input. Remote branch selection excludes symbolic `HEAD`
+refs for every remote and resolves the configured remote name from the full ref
+instead of assuming it is named `origin`. Detached-HEAD transitions require a
+clean worktree, and `gfreturn` refuses to run unless HEAD is actually detached.
+
+Optional Homebrew tools are initialized by `integrations/cli-tools.zsh` when
+installed. `eza` provides interactive `ls`, `ll`, and `lt` aliases, while
+`zoxide` provides its `z` and `zi` navigation commands. Git uses `delta` as its
+global pager; fzf previews explicitly use `git --no-pager` so they remain
+non-blocking regardless of pager configuration.
+
+### Development
+
+* `nvim` contains the LazyVim-based Neovim config.
+* `lean` adds `~/.elan/bin` to your shell PATH after `setup-lean` installs elan.
+* `sdkman` initializes SDKMAN from `~/.config/profile.d/sdkman.sh`.
+* `nvm` initializes NVM from either Ubuntu's `~/.nvm/nvm.sh` or Arch's
+  `/usr/share/nvm/init-nvm.sh`.
+* `scripts` installs bootstrap helpers into `~/.local/bin`.
+
+### Terminal Markdown Preview
+
+Browser preview remains available from Neovim, but `md-preview` gives you a
+terminal-rendered view for Ghostty and Zellij.
+
+Install Glow:
+
+```bash
+setup-glow
+```
+
+Use it in another Zellij pane beside Neovim:
+
+```bash
+md-preview --watch notes/discrete-math.md
+```
+
+For a one-shot rendered pager:
+
+```bash
+md-preview notes/discrete-math.md
+```
+
+### Lean 4 Proof Workflow
+
+The Neovim config includes Lean 4 editing through `lean.nvim`, Lean LSP,
+Tree-sitter highlighting, Telescope integration, and Markdown preview for notes.
+
+Install or refresh the toolchain:
+
+```bash
+setup-lean
+```
+
+Create a mathlib-backed proof sandbox for discrete mathematics:
+
+```bash
+mkdir -p ~/projects/proofs
+cd ~/projects/proofs
+lake new discrete_math math
+cd discrete_math
+lake update
+lake exe cache get
+nvim DiscreteMath/Basic.lean
+```
+
+Useful Neovim mappings inside `.lean` files:
+
+```text
+<leader>lg  show current proof goal
+<leader>li  toggle Lean infoview
+<leader>lt  show term goal
+<leader>ld  jump to definition
+<leader>lh  hover
+<leader>la  code action
+```
+
+### Apps
+
+* `qutebrowser` stows `~/.config/qutebrowser/config.py`.
+* `fff` stows `~/.config/fff`.
+* `ghostty` stows `~/.config/ghostty/config` with your Tokyo Night terminal
+  setup.
+
+## Package Manifests
+
+* `packages/apt.txt` is used on Ubuntu/Debian.
+* `packages/pacman.txt` and `packages/aur.txt` are used on Arch/Omarchy.
+
+Run:
+
+```bash
+migrate-packages --dry-run
+```
+
+to preview what will be installed for the current OS.

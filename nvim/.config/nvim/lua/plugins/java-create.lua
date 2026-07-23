@@ -217,6 +217,8 @@ local function create_java_type()
   end)
 end
 
+vim.keymap.set("n", "<leader>Jc", create_java_type, { desc = "Create Java type" })
+
 return {
   {
     "folke/which-key.nvim",

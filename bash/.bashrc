@@ -5,7 +5,9 @@
 unalias ga gd gs 2>/dev/null
 
 # All the default Omarchy aliases and functions
-source ~/.local/share/omarchy/default/bash/rc
+if [ -f "$HOME/.local/share/omarchy/default/bash/rc" ]; then
+  source "$HOME/.local/share/omarchy/default/bash/rc"
+fi
 
 # ~/.local/bin on PATH
 export PATH="$HOME/.local/bin:$PATH"
@@ -31,5 +33,10 @@ alias dcd='docker compose down'
 set -h
 
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
-export SDKMAN_DIR="/home/isra/.sdkman"
-[[ -s "/home/isra/.sdkman/bin/sdkman-init.sh" ]] && source "/home/isra/.sdkman/bin/sdkman-init.sh"
+export SDKMAN_DIR="$HOME/.sdkman"
+[[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
+
+
+# Load Angular CLI autocompletion.
+source <(ng completion script)
+. "$HOME/.cargo/env"

@@ -211,6 +211,8 @@ local function create_python_type()
   end)
 end
 
+vim.keymap.set("n", "<leader>Pn", create_python_type, { desc = "New Python file" })
+
 return {
   {
     "folke/which-key.nvim",
