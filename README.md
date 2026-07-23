@@ -138,10 +138,13 @@ instead of assuming it is named `origin`. Detached-HEAD transitions require a
 clean worktree, and `gfreturn` refuses to run unless HEAD is actually detached.
 
 Optional Homebrew tools are initialized by `integrations/cli-tools.zsh` when
-installed. `eza` provides interactive `ls`, `ll`, and `lt` aliases, while
-`zoxide` provides its `z` and `zi` navigation commands. Git uses `delta` as its
-global pager; fzf previews explicitly use `git --no-pager` so they remain
-non-blocking regardless of pager configuration.
+installed. `eza` provides `ls`/`l` for quick listings, `ll` for a Git-aware long
+view, `la` to include hidden files, `ld` for directories only, and `lt` for a
+two-level tree that omits common generated directories. `zoxide` provides `z`
+for ranked directory jumps and `zi` for interactive fuzzy selection without
+replacing normal `cd`. Git uses `delta` as its global pager; fzf previews
+explicitly use `git --no-pager` so they remain non-blocking regardless of pager
+configuration.
 
 ### Development
 
