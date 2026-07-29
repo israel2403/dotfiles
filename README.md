@@ -1,10 +1,27 @@
 # Dotfiles
 
-Personal dotfiles managed with GNU Stow. This repo supports two flows:
+Personal dotfiles managed with GNU Stow. The normal entry point detects the
+machine and applies a shared package set plus the matching OS profile:
 
-* Ubuntu 24 laptops: shell, Git, Neovim, Lean 4, Java, Node/npm, Docker,
-  qutebrowser, fff, Ghostty config, and common CLI tools.
-* Arch/Omarchy machines: existing Omarchy bootstrap and package migration.
+```bash
+make setup-dry-run
+make setup
+```
+
+Detection reads `/etc/os-release`. Because Omarchy may identify itself as
+Arch, `~/.config/omarchy` is used as its stronger identifying signal. Plain
+Arch is not silently treated as Omarchy; select it explicitly with
+`make omarchy-stow` if appropriate.
+
+The profiles are defined in `scripts/.local/bin/stow-profile`:
+
+* Common: Bash, Zsh, Git, Neovim, language/tool integrations, scripts,
+  qutebrowser, fff, and MIME defaults.
+* Ubuntu: common plus Ghostty.
+* Omarchy: common plus the intentionally managed Hyprland fragments.
+
+This keeps package installation separate from link selection. Package
+manifests continue to use `apt` on Ubuntu and `pacman`/AUR on Omarchy.
 
 ## Ubuntu 24 Quick Start
 
@@ -18,11 +35,7 @@ cd ~/dotfiles
 make ubuntu
 ```
 
-`make ubuntu` stows only the Ubuntu-safe packages:
-
-```bash
-bash git nvim lazygit sdkman nvm lean scripts zsh qutebrowser fff ghostty
-```
+`make ubuntu` selects the Ubuntu profile and then runs the developer bootstrap.
 
 Then it runs:
 
@@ -43,12 +56,11 @@ bootstrap-zsh      # Oh My Zsh + Powerlevel10k + zsh plugins
 After it finishes, log out and back in so the Docker group and login shell
 changes apply.
 
-If you want to stow manually on Ubuntu:
+If you want to stow without installing software:
 
 ```bash
 cd ~/dotfiles
-stow --target="$HOME" bash git nvim lazygit sdkman nvm lean scripts zsh qutebrowser fff ghostty
-bootstrap-dev
+make ubuntu-stow
 ```
 
 ## Arch / Omarchy Quick Start
@@ -61,17 +73,20 @@ cd ~/dotfiles
 make bootstrap
 ```
 
-`make bootstrap` intentionally remains the Omarchy/new-machine flow. Do not use
-it on Ubuntu.
+`make bootstrap` remains the full Omarchy/new-machine flow. For links only,
+use `make omarchy-stow`.
 
 ## Common Commands
 
 ```bash
-make ubuntu-stow  # stow only the Ubuntu-safe package set
-make stow         # stow every package in the repo
-make restow       # restow every package
-make unstow       # unstow every package
-make status       # show repo status and symlinks into ~/dotfiles
+make ubuntu-stow  # stow common + Ubuntu-specific packages
+make omarchy-stow # stow common + Omarchy-specific packages
+make setup        # auto-detect and stow the matching profile
+make setup-dry-run # preview auto-detected stow operations
+make stow          # stow every package in the repo
+make restow        # restow every package
+make unstow        # unstow every package
+make status        # show repo status and symlinks into ~/dotfiles
 ```
 
 On Ubuntu, prefer `make ubuntu` or `make ubuntu-stow`; `make stow` includes all
@@ -142,9 +157,12 @@ installed. `eza` provides `ls`/`l` for quick listings, `ll` for a Git-aware long
 view, `la` to include hidden files, `ld` for directories only, and `lt` for a
 two-level tree that omits common generated directories. `zoxide` provides `z`
 for ranked directory jumps and `zi` for interactive fuzzy selection without
-replacing normal `cd`. Git uses `delta` as its global pager; fzf previews
-explicitly use `git --no-pager` so they remain non-blocking regardless of pager
-configuration.
+replacing normal `cd`. `bat` is available even on Ubuntu systems that name the
+binary `batcat`; interactive `cat` gains syntax highlighting without decorating
+redirected output, while `bcat` provides line numbers, file headers, Git-change
+markers, and automatic paging. Git uses `delta` as its global pager; fzf
+previews explicitly use `git --no-pager` so they remain non-blocking regardless
+of pager configuration.
 
 ### Development
 

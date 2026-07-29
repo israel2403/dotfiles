@@ -1,8 +1,10 @@
 # ~/dotfiles/Makefile
 # Convenience entrypoints. Run from anywhere inside ~/dotfiles:
 #
-#     make            # alias for `make sync` (Arch/Omarchy daily command)
-#     make ubuntu     # stow Ubuntu-safe packages + run Ubuntu-aware bootstrap
+#     make            # detect Ubuntu/Omarchy and stow the matching profile
+#     make setup      # detect Ubuntu/Omarchy and stow the matching profile
+#     make setup-dry-run # preview the detected profile without changing links
+#     make ubuntu     # explicitly select Ubuntu and run its dev bootstrap
 #     make sync       # pull + restow + idempotent helpers (DAILY command)
 #     make force-sync # like `sync` but DELETES divergent local files (no backup)
 #     make bootstrap  # full new-machine Omarchy bootstrap (FIRST-TIME ONLY)
@@ -20,10 +22,10 @@ PACKAGES := $(shell find $(DOTFILES) -mindepth 1 -maxdepth 1 -type d \
             ! -name '.git' ! -name 'packages' \
             -printf '%f ')
 
-UBUNTU_PACKAGES := bash git nvim lazygit sdkman nvm lean scripts zsh qutebrowser fff ghostty
+PROFILE := $(SCRIPTS)/stow-profile
 
-.DEFAULT_GOAL := sync
-.PHONY: sync force-sync bootstrap ubuntu ubuntu-stow stow restow unstow status dry-run help
+.DEFAULT_GOAL := setup
+.PHONY: setup setup-dry-run sync force-sync bootstrap ubuntu ubuntu-stow omarchy-stow stow restow unstow status dry-run help
 
 help:
 	@sed -n '2,15p' $(firstword $(MAKEFILE_LIST)) | sed 's/^# \{0,1\}//'
@@ -40,11 +42,20 @@ dry-run:
 bootstrap:
 	@$(SCRIPTS)/bootstrap-new-machine
 
+setup:
+	@DOTFILES=$(DOTFILES) $(PROFILE)
+
+setup-dry-run:
+	@DOTFILES=$(DOTFILES) $(PROFILE) --dry-run
+
 ubuntu: ubuntu-stow
 	@$(SCRIPTS)/bootstrap-dev
 
 ubuntu-stow:
-	@cd $(DOTFILES) && stow --target=$$HOME $(UBUNTU_PACKAGES)
+	@DOTFILES=$(DOTFILES) $(PROFILE) --profile ubuntu
+
+omarchy-stow:
+	@DOTFILES=$(DOTFILES) $(PROFILE) --profile omarchy
 
 stow:
 	@cd $(DOTFILES) && stow --target=$$HOME $(PACKAGES)

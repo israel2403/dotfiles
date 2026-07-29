@@ -28,3 +28,19 @@ if (( $+commands[zoxide] )); then
   # Keep normal `cd` semantics; zoxide remains explicit through `z` and `zi`.
   eval "$(zoxide init zsh --hook=pwd)"
 fi
+
+# Ubuntu installs bat as `batcat`. Provide the upstream name and a safe
+# interactive cat replacement: plain styling and automatic colors preserve
+# clean output when redirected, while terminals still receive highlighting.
+if (( $+commands[bat] || $+commands[batcat] )); then
+  typeset _bat_command=${commands[bat]:-${commands[batcat]}}
+
+  if ! (( $+commands[bat] )); then
+    alias bat="${(q)_bat_command}"
+  fi
+
+  alias cat="${(q)_bat_command} --paging=never --style=plain --color=auto"
+  alias bcat="${(q)_bat_command} --paging=auto --style=numbers,changes,header,grid --color=always"
+
+  unset _bat_command
+fi

@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# Stow the portable dotfiles plus the packages selected for this machine.
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+TARGET="${STOW_TARGET:-$HOME}"
+
+COMMON_PACKAGES=(
+  bash fff git lazygit lean mime nvim nvm qutebrowser scripts sdkman zsh
+)
+UBUNTU_PACKAGES=(ghostty)
+OMARCHY_PACKAGES=(hypr)
+
+profile=""
+mode="stow"
+dry_run=0
+
+usage() {
+  cat <<'EOF'
+Usage: stow-profile [--profile ubuntu|omarchy] [--dry-run] [--restow|--delete]
+
+Without --profile, /etc/os-release and Omarchy's config directory are used.
+DOTFILES and STOW_TARGET may override the repository and target directories.
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --profile) profile="${2:-}"; shift 2 ;;
+    --dry-run|-n) dry_run=1; shift ;;
+    --restow|-R) mode="restow"; shift ;;
+    --delete|-D) mode="delete"; shift ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "stow-profile: unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+detect_profile() {
+  local id="" id_like=""
+  if [[ -r /etc/os-release ]]; then
+    # shellcheck disable=SC1091
+    source /etc/os-release
+    id="${ID:-}"
+    id_like="${ID_LIKE:-}"
+  fi
+
+  # Omarchy currently identifies as Arch, so use its own config as the
+  # stronger signal. Plain Arch is deliberately not assumed to be Omarchy.
+  if [[ "$id" == "omarchy" || -d "$HOME/.config/omarchy" ]]; then
+    printf 'omarchy\n'
+  elif [[ "$id" == "ubuntu" || " $id_like " == *" ubuntu "* || " $id_like " == *" debian "* ]]; then
+    printf 'ubuntu\n'
+  else
+    echo "stow-profile: unsupported system (ID=${id:-unknown}, ID_LIKE=${id_like:-none})." >&2
+    echo "Pass --profile ubuntu or --profile omarchy explicitly." >&2
+    return 1
+  fi
+}
+
+if [[ -z "$profile" ]]; then
+  profile="$(detect_profile)"
+fi
+case "$profile" in
+  ubuntu) packages=("${COMMON_PACKAGES[@]}" "${UBUNTU_PACKAGES[@]}") ;;
+  omarchy) packages=("${COMMON_PACKAGES[@]}" "${OMARCHY_PACKAGES[@]}") ;;
+  *) echo "stow-profile: invalid profile: $profile" >&2; exit 2 ;;
+esac
+
+[[ -d "$DOTFILES" ]] || { echo "stow-profile: repository not found: $DOTFILES" >&2; exit 1; }
+command -v stow >/dev/null 2>&1 || { echo "stow-profile: GNU Stow is not installed." >&2; exit 1; }
+
+for package in "${packages[@]}"; do
+  [[ -d "$DOTFILES/$package" ]] || {
+    echo "stow-profile: package is missing: $DOTFILES/$package" >&2
+    exit 1
+  }
+done
+
+flags=(--target="$TARGET" --verbose)
+case "$mode" in
+  restow) flags+=(--restow) ;;
+  delete) flags+=(--delete) ;;
+esac
+((dry_run)) && flags+=(--simulate)
+
+printf 'Profile: %s\nPackages:' "$profile"
+printf ' %s' "${packages[@]}"
+printf '\n'
+((dry_run)) && echo "Simulation only; no links will be changed."
+
+cd "$DOTFILES"
+stow "${flags[@]}" "${packages[@]}"
