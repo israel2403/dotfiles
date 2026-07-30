@@ -1,8 +1,8 @@
 # ~/dotfiles/Makefile
 # Convenience entrypoints. Run from anywhere inside ~/dotfiles:
 #
-#     make            # detect Ubuntu/Omarchy and stow the matching profile
-#     make setup      # detect Ubuntu/Omarchy and stow the matching profile
+#     make            # stow the detected profile and install developer tools
+#     make setup      # stow the detected profile and install developer tools
 #     make setup-dry-run # preview the detected profile without changing links
 #     make ubuntu     # explicitly select Ubuntu and run its dev bootstrap
 #     make sync       # pull + restow + idempotent helpers (DAILY command)
@@ -44,6 +44,7 @@ bootstrap:
 
 setup:
 	@DOTFILES=$(DOTFILES) $(PROFILE)
+	@DOTFILES=$(DOTFILES) $(SCRIPTS)/setup-dev-tools
 
 setup-dry-run:
 	@DOTFILES=$(DOTFILES) $(PROFILE) --dry-run

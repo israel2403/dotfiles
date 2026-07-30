@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Install the user-level development tools managed by this repository.
+set -euo pipefail
+
+DOTFILES="${DOTFILES:-$HOME/dotfiles}"
+SCRIPT_DIR="$DOTFILES/scripts/.local/bin"
+
+installers=(
+  setup-lazygit
+  setup-java
+  setup-node
+  setup-angular
+  setup-lean
+  setup-glow
+  setup-zellij
+  setup-ghostty
+  bootstrap-zsh
+)
+
+for installer in "${installers[@]}"; do
+  script="$SCRIPT_DIR/$installer"
+  [[ -x "$script" ]] || {
+    echo "setup-dev-tools: missing installer: $script" >&2
+    exit 1
+  }
+
+  echo
+  echo ">>> $installer"
+  DOTFILES="$DOTFILES" "$script"
+done
+
+echo
+echo "Developer tools are ready."

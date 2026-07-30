@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# Install the Zellij terminal workspace.
+set -euo pipefail
+
+if command -v zellij >/dev/null 2>&1; then
+  zellij --version
+  exit 0
+fi
+
+if command -v pacman >/dev/null 2>&1; then
+  sudo pacman -S --needed --noconfirm zellij
+elif command -v apt-cache >/dev/null 2>&1 \
+  && apt-cache show zellij >/dev/null 2>&1; then
+  sudo apt-get update
+  sudo apt-get install -y zellij
+elif command -v cargo >/dev/null 2>&1; then
+  cargo install --locked zellij
+else
+  echo "setup-zellij: no supported package manager or Cargo installation found." >&2
+  exit 1
+fi
+
+zellij --version

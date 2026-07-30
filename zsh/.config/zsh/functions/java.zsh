@@ -1,5 +1,49 @@
 # Java and Maven helpers.
-run_java()  { mvn spring-boot:run "$@"; }
+run_java() {
+  if [ ! -f pom.xml ]; then
+    echo "run_java: no pom.xml found in the current directory" >&2
+    return 1
+  fi
+
+  # Spring Boot projects provide their own run goal and may not have a
+  # conventional main class under src/main/java.
+  if grep -qE '<artifactId>spring-boot-(starter-parent|maven-plugin)</artifactId>' pom.xml; then
+    mvn spring-boot:run "$@"
+    return $?
+  fi
+
+  # Plain Maven projects need a main class for exec:java. JAVA_MAIN_CLASS can
+  # be used when a project has multiple entry points or a nonstandard layout.
+  local main_class="${JAVA_MAIN_CLASS:-}"
+  if [ -z "$main_class" ]; then
+    local -a main_files
+    main_files=("${(@f)$(grep -rlE \
+      'public[[:space:]]+static[[:space:]]+void[[:space:]]+main[[:space:]]*\(' \
+      src/main/java --include='*.java' 2>/dev/null)}")
+
+    if [ ${#main_files[@]} -eq 0 ]; then
+      echo "run_java: no main method found under src/main/java" >&2
+      echo "          set JAVA_MAIN_CLASS to the fully qualified class name" >&2
+      return 1
+    fi
+    if [ ${#main_files[@]} -gt 1 ]; then
+      echo "run_java: multiple main classes found:" >&2
+      printf '  %s\n' "${main_files[@]}" >&2
+      echo "          select one with JAVA_MAIN_CLASS=com.example.Main run_java" >&2
+      return 1
+    fi
+
+    local package_name class_name
+    package_name=$(sed -nE \
+      's/^[[:space:]]*package[[:space:]]+([^;]+);.*/\1/p' \
+      "$main_files[1]" | head -1)
+    class_name=${main_files[1]:t:r}
+    main_class="${package_name:+${package_name}.}${class_name}"
+  fi
+
+  mvn compile org.codehaus.mojo:exec-maven-plugin:java \
+    -Dexec.mainClass="$main_class" "$@"
+}
 test_java() { mvn test "$@"; }
 mvnc()      { mvn clean install -DskipTests "$@"; }
 
@@ -216,4 +260,3 @@ EOF
 
   echo "✅ Clean Maven project ready  (Java release=$java_major, .sdkmanrc=java=$sdk_id)"
 }
-

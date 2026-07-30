@@ -1,12 +1,20 @@
 # Dotfiles
 
 Personal dotfiles managed with GNU Stow. The normal entry point detects the
-machine and applies a shared package set plus the matching OS profile:
+machine, applies a shared package set plus the matching OS profile, and
+installs the managed development tools:
 
 ```bash
 make setup-dry-run
 make setup
 ```
+
+After linking the selected profile, `make setup` runs the idempotent tool
+installers for LazyGit, Java 21/Maven/Gradle, Node LTS, Angular CLI, Lean,
+Glow, Zellij, Ghostty, and Zsh (including Oh My Zsh, Powerlevel10k, and
+plugins). Some installers use the system package manager and may ask for sudo
+authentication. Use `make ubuntu-stow` or `make omarchy-stow` when only
+configuration links are wanted.
 
 Detection reads `/etc/os-release`. Because Omarchy may identify itself as
 Arch, `~/.config/omarchy` is used as its stronger identifying signal. Plain
@@ -81,7 +89,7 @@ use `make omarchy-stow`.
 ```bash
 make ubuntu-stow  # stow common + Ubuntu-specific packages
 make omarchy-stow # stow common + Omarchy-specific packages
-make setup        # auto-detect and stow the matching profile
+make setup        # auto-detect, stow, and install managed developer tools
 make setup-dry-run # preview auto-detected stow operations
 make stow          # stow every package in the repo
 make restow        # restow every package

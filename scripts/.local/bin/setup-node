@@ -20,7 +20,9 @@ elif [ -s "/usr/share/nvm/init-nvm.sh" ]; then
   . /usr/share/nvm/init-nvm.sh
 else
   echo "Installing nvm to $NVM_DIR"
-  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+  mkdir -p "$NVM_DIR"
+  curl -fsSL https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh \
+    | PROFILE=/dev/null bash
   . "$NVM_DIR/nvm.sh"
 fi
 

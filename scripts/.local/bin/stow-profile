@@ -88,5 +88,51 @@ printf ' %s' "${packages[@]}"
 printf '\n'
 ((dry_run)) && echo "Simulation only; no links will be changed."
 
+if ((dry_run == 0)); then
+  prestow_ts="$(date +%s)"
+
+  is_absolute_repo_symlink() {
+    local path=$1 link_value resolved
+    [[ -L "$path" ]] || return 1
+    link_value="$(readlink "$path" 2>/dev/null || true)"
+    [[ "$link_value" == /* ]] || return 1
+    resolved="$(readlink -f "$path" 2>/dev/null || true)"
+    [[ "$resolved" == "$DOTFILES"/* ]]
+  }
+
+  for package in "${packages[@]}"; do
+    package_dir="$DOTFILES/$package"
+    while IFS= read -r -d '' source; do
+      relative="${source#$package_dir/}"
+      target="$TARGET/$relative"
+
+      # A file reached through a tree-folded Stow link is already managed.
+      resolved="$(readlink -f "$target" 2>/dev/null || true)"
+      if [[ "$resolved" == "$DOTFILES"/* && ! -L "$target" ]]; then
+        continue
+      fi
+
+      if is_absolute_repo_symlink "$target"; then
+        rm -f "$target"
+        printf 'Cleaned absolute repo symlink: %s\n' "$target"
+      elif [[ -f "$target" && ! -L "$target" ]]; then
+        if cmp -s "$source" "$target"; then
+          rm -f "$target"
+          printf 'Dropped identical pre-existing file: %s\n' "$target"
+        else
+          backup="${target}.pre-stow.${prestow_ts}"
+          suffix=0
+          while [[ -e "$backup" || -L "$backup" ]]; do
+            ((suffix += 1))
+            backup="${target}.pre-stow.${prestow_ts}.${suffix}"
+          done
+          mv "$target" "$backup"
+          printf 'Backed up divergent file: %s -> %s\n' "$target" "$backup"
+        fi
+      fi
+    done < <(find "$package_dir" -type f -print0)
+  done
+fi
+
 cd "$DOTFILES"
 stow "${flags[@]}" "${packages[@]}"

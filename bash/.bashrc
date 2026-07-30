@@ -18,6 +18,10 @@ alias gaa='git add'
 alias gc='git commit'
 alias gp='git push'
 
+# Re-enable command hashing after Omarchy's mise initialization. Some tools
+# loaded below (notably NVM) call `hash -r`.
+set -h
+
 # Source all tool initializations from ~/.config/profile.d/
 if [ -d "$HOME/.config/profile.d" ]; then
   for f in "$HOME/.config/profile.d"/*.sh; do
@@ -29,14 +33,14 @@ fi
 alias dcu='docker compose up -d'
 alias dcd='docker compose down'
 
-# Re-enable command hashing (omarchy disables it for mise init, not needed after)
-set -h
-
 #THIS MUST BE AT THE END OF THE FILE FOR SDKMAN TO WORK!!!
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
 
 
-# Load Angular CLI autocompletion.
-source <(ng completion script)
-. "$HOME/.cargo/env"
+# Load optional tool integrations only when they are installed.
+if command -v ng >/dev/null 2>&1; then
+  source <(ng completion script)
+fi
+
+[[ -r "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"

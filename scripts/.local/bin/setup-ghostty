@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DOTFILES="${DOTFILES:-$HOME/dotfiles}"
-
 if command -v ghostty >/dev/null 2>&1; then
   echo "Ghostty already installed: $(command -v ghostty)"
 elif command -v apt-cache >/dev/null 2>&1 && apt-cache show ghostty >/dev/null 2>&1; then
@@ -14,10 +12,5 @@ elif command -v pacman >/dev/null 2>&1; then
   sudo pacman -S --needed --noconfirm ghostty
 else
   echo "Ghostty is not available from this machine's configured package manager."
-  echo "The config will still be stowed to ~/.config/ghostty/config."
-fi
-
-if [[ -d "$DOTFILES/ghostty" ]] && command -v stow >/dev/null 2>&1; then
-  (cd "$DOTFILES" && stow --restow --target="$HOME" ghostty)
-  echo "Ghostty config linked at ~/.config/ghostty/config"
+  echo "Only the machine's selected Stow profile manages Ghostty configuration."
 fi
