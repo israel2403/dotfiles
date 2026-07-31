@@ -22,3 +22,28 @@ proj() {
   print -r -- "Project: ${dir:t}"
   git --no-pager log --oneline -5
 }
+
+# Fuzzy-jump through zoxide's ranked directory history. Optional arguments
+# narrow the zoxide results before fzf opens: `zj java project`.
+zj() {
+  (( $+commands[zoxide] && $+commands[fzf] )) || {
+    print -u2 'zj: requires zoxide and fzf'
+    return 1
+  }
+
+  local directory
+  directory=$(
+    zoxide query --list -- "$@" 2>/dev/null |
+      fzf \
+        --scheme=path \
+        --prompt='jump> ' \
+        --header='Enter: jump | Esc: cancel | Ctrl-/: toggle preview' \
+        --preview='if command -v eza >/dev/null 2>&1; then eza --all --long --group-directories-first --icons=auto -- {}; else ls -la -- {}; fi' \
+        --preview-window='right:55%:wrap' \
+        --bind='ctrl-/:toggle-preview'
+  ) || return
+
+  [[ -n $directory && -d $directory ]] || return 1
+  cd -- "$directory" || return
+  print -r -- "Directory: $directory"
+}
