@@ -10,6 +10,9 @@ return {
     opts = {},
     keys = {
       { "<leader>w", "<Plug>(nvim-surround-visual)", mode = "x", desc = "Wrap selection" },
+      { "(", "<Plug>(nvim-surround-visual))", mode = "x", desc = "Wrap selection with ()" },
+      { "{", "<Plug>(nvim-surround-visual)}", mode = "x", desc = "Wrap selection with {}" },
+      { "[", "<Plug>(nvim-surround-visual)]", mode = "x", desc = "Wrap selection with []" },
     },
   },
 }
