@@ -63,6 +63,7 @@ end
 
 vim.keymap.set({ "n", "t" }, "<C-/>", toggle_terminal, { desc = "Toggle Terminal" })
 vim.keymap.set({ "n", "t" }, "<C-_>", toggle_terminal, { desc = "Toggle Terminal" })
+vim.keymap.set({ "n", "t" }, "<C-kDivide>", toggle_terminal, { desc = "Toggle Terminal (numpad /)" })
 vim.keymap.set({ "n", "t" }, "<C-t>", new_terminal, { desc = "New terminal tab" })
 vim.keymap.set({ "n", "t" }, "<M-t>", new_terminal, { desc = "New terminal tab" })
 vim.keymap.set({ "n", "t" }, "<M-]>", next_terminal, { desc = "Next terminal" })

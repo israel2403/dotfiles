@@ -69,22 +69,6 @@ map("n", "<leader><space>", function()
   LazyVim.pick("files", { cwd = start_cwd, root = false })()
 end, { desc = "Find Files (Start Dir)" })
 
-local function maven_spotless_apply()
-  vim.cmd("MavenSpotlessApply")
-end
-
-map({ "n", "x" }, "<M-f>", maven_spotless_apply, { desc = "Maven Spotless Apply", remap = false })
-map("i", "<M-f>", function()
-  vim.cmd.stopinsert()
-  vim.schedule(maven_spotless_apply)
-end, { desc = "Maven Spotless Apply", remap = false })
-map({ "n", "x" }, "<F4>", maven_spotless_apply, { desc = "Maven Spotless Apply", remap = false })
-map("i", "<F4>", function()
-  vim.cmd.stopinsert()
-  vim.schedule(maven_spotless_apply)
-end, { desc = "Maven Spotless Apply", remap = false })
-map({ "n", "x" }, "<leader>Jf", maven_spotless_apply, { desc = "Maven Spotless Apply", remap = false })
-
 map("n", "<leader>nf", "<cmd>Telescope find_files cwd=~/notes<cr>", { desc = "Find notes" })
 map("n", "<leader>ng", "<cmd>Telescope live_grep cwd=~/notes<cr>", { desc = "Grep notes" })
 
