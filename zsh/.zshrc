@@ -53,6 +53,7 @@ done
 source "$HOME/.config/zsh/functions/files.zsh"
 source "$HOME/.config/zsh/functions/navigation.zsh"
 source "$HOME/.config/zsh/functions/java.zsh"
+source "$HOME/.config/zsh/functions/tomee.zsh"
 source "$HOME/.config/zsh/functions/git.zsh"
 
 source "$HOME/.config/zsh/integrations/fzf.zsh"
