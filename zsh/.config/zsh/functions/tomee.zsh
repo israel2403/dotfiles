@@ -29,7 +29,7 @@ mvn_tomee_new() {
         ;;
       -h|--help)
         cat <<'EOF'
-mvn_tomee_new -- create a minimal Jakarta JSP application for Apache TomEE.
+mvn_tomee_new -- create a Jakarta JSP/TomEE Maven project skeleton.
 
 Usage:
   mvn_tomee_new [options] <artifactId>
@@ -45,7 +45,7 @@ Environment defaults:
 
 After creation:
   mvn clean package tomee:run
-  open http://localhost:8080/<artifactId>/hello
+  open http://localhost:8080/<artifactId>/
 EOF
         return 0
         ;;
@@ -91,9 +91,18 @@ EOF
 
   local package_path=${group//.//}
   local java_dir="$artifact/src/main/java/$package_path"
+  local resources_dir="$artifact/src/main/resources"
+  local test_dir="$artifact/src/test/java"
   local web_dir="$artifact/src/main/webapp"
 
-  command mkdir -p -- "$java_dir" "$web_dir/WEB-INF/views" "$web_dir/css" "$web_dir/js" || return
+  command mkdir -p -- \
+    "$java_dir" \
+    "$resources_dir/META-INF" \
+    "$test_dir" \
+    "$web_dir/META-INF" \
+    "$web_dir/WEB-INF/jspf" \
+    "$web_dir/resources/css" \
+    "$web_dir/resources/imgs" || return
 
   cat > "$artifact/pom.xml" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -151,72 +160,32 @@ EOF
 </project>
 EOF
 
-  cat > "$java_dir/HelloServlet.java" <<EOF
-package ${group};
-
-import jakarta.servlet.ServletException;
-import jakarta.servlet.annotation.WebServlet;
-import jakarta.servlet.http.HttpServlet;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
-
-@WebServlet("/hello")
-public class HelloServlet extends HttpServlet {
-  @Override
-  protected void doGet(HttpServletRequest request, HttpServletResponse response)
-      throws ServletException, IOException {
-    request.setAttribute("message", "Hello from Jakarta Servlet on Apache TomEE!");
-    request.getRequestDispatcher("/WEB-INF/views/hello.jsp").forward(request, response);
-  }
-}
+  cat > "$artifact/nb-configuration.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<project-shared-configuration>
+  <properties xmlns="http://www.netbeans.org/ns/maven-properties-data/1">
+    <org-netbeans-modules-maven-j2ee.netbeans_2e_hint_2e_j2eeVersion>10-web</org-netbeans-modules-maven-j2ee.netbeans_2e_hint_2e_j2eeVersion>
+    <org-netbeans-modules-maven-j2ee.netbeans_2e_hint_2e_deploy_2e_server>Tomcat</org-netbeans-modules-maven-j2ee.netbeans_2e_hint_2e_deploy_2e_server>
+    <org-netbeans-modules-maven-jaxws.rest_2e_config_2e_type>ide</org-netbeans-modules-maven-jaxws.rest_2e_config_2e_type>
+  </properties>
+</project-shared-configuration>
 EOF
 
-  cat > "$web_dir/WEB-INF/views/hello.jsp" <<'EOF'
-<%@ page contentType="text/html;charset=UTF-8" language="java" %>
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>TomEE JSP application</title>
-    <link rel="stylesheet" href="${pageContext.request.contextPath}/css/app.css" />
-  </head>
-  <body>
-    <main>
-      <h1>${message}</h1>
-      <button id="hello-button" type="button">Test JavaScript</button>
-      <p id="result" aria-live="polite"></p>
-    </main>
-    <script src="${pageContext.request.contextPath}/js/app.js"></script>
-  </body>
-</html>
+  cat > "$web_dir/WEB-INF/web.xml" <<'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee https://jakarta.ee/xml/ns/jakartaee/web-app_6_0.xsd"
+         version="6.0">
+  <session-config>
+    <session-timeout>30</session-timeout>
+  </session-config>
+</web-app>
 EOF
 
-  cat > "$web_dir/css/app.css" <<'EOF'
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-}
-
-body {
-  margin: 0;
-  min-height: 100vh;
-  display: grid;
-  place-items: center;
-}
-
-main {
-  max-width: 42rem;
-  padding: 2rem;
-  text-align: center;
-}
-EOF
-
-  cat > "$web_dir/js/app.js" <<'EOF'
-document.querySelector("#hello-button").addEventListener("click", () => {
-  document.querySelector("#result").textContent = "JavaScript is working.";
-});
+  cat > "$web_dir/META-INF/context.xml" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<Context path="/${artifact}"/>
 EOF
 
   print -r -- '/target/' > "$artifact/.gitignore"
@@ -224,5 +193,5 @@ EOF
   cd -- "$artifact" || return
   print -r -- "Created Jakarta JSP/TomEE project: $PWD"
   print -r -- "Run:  mvn clean package tomee:run"
-  print -r -- "Open: http://localhost:8080/${artifact}/hello"
+  print -r -- "Open: http://localhost:8080/${artifact}/"
 }

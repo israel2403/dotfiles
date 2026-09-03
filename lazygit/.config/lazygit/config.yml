@@ -9,11 +9,13 @@
 git:
   autoFetch: true # fetch from origin on open
   autoRefresh: true # refresh the UI when files change on disk
-  pagers:
+  diffRenderers:
     - colorArg: always
       # NOTE: leaving `pager:` unset uses lazygit's built-in diff renderer.
       # If you ever install git-delta, uncomment this for richer diffs:
       #   pager: delta --paging=never --line-numbers
+
+      type: rawGit
 os:
   # When launched from inside nvim ($NVIM set), open files in the parent
   # nvim instead of a nested one. Outside nvim this falls back to plain

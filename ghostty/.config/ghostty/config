@@ -1,31 +1,48 @@
-theme = TokyoNight Night
+# Dynamic theme colors
+config-file = ?"~/.local/state/omarchy/current/theme/ghostty.conf"
 
-font-family = "JetBrains Mono"
-font-size = 12
-font-feature = calt, liga, dlig
+# Font
+font-family = "JetBrainsMono Nerd Font"
+font-style = Regular
+font-size = 9
 
-command = /usr/bin/zsh
+# Window
+window-theme = ghostty
+window-padding-x = 14
+window-padding-y = 14
+window-show-tab-bar = auto
+confirm-close-surface=false
+resize-overlay = never
+gtk-toolbar-style = flat
 
-window-padding-x = 10
-window-padding-y = 10
-
-background-blur-radius = 12
+# Let the desktop wallpaper show through while keeping text readable.
 background-opacity = 0.85
+background-blur = true
 
-mouse-hide-while-typing = true
-mouse-scroll-multiplier = 2
-copy-on-select = clipboard
+# Cursor styling
+cursor-style = "block"
+cursor-style-blink = false
 
-keybind = alt+enter=toggle_fullscreen
-keybind = alt+f=esc:f
-keybind = alt+==increase_font_size:1
-keybind = alt+-=decrease_font_size:1
-keybind = alt+0=reset_font_size
-keybind = ctrl+shift+t=new_tab
-keybind = ctrl+w=close_tab:this
-keybind = ctrl+page_down=next_tab
-keybind = ctrl+page_up=previous_tab
-keybind = ctrl+n=new_window
-keybind = ctrl+shift+c=copy_to_clipboard:mixed
-keybind = ctrl+shift+v=paste_from_clipboard
-keybind = ctrl+f=start_search
+# Cursor styling + SSH session terminfo
+# (all shell integration options must be passed together)
+shell-integration-features = no-cursor,ssh-env
+
+# Keyboard bindings
+# Avoid Zellij's Ctrl+T prefix by using a non-Control shortcut for Ghostty tabs.
+keybind = all:alt+shift+t=new_tab
+keybind = shift+insert=paste_from_clipboard
+keybind = control+insert=copy_to_clipboard
+# Send Shift+Enter as CSI-u so TUIs can distinguish it from Enter.
+keybind = shift+enter=csi:13;2u
+# Legacy encoding sends Alt+Shift+Enter the same as Alt+Enter; send CSI-u so tmux can match M-S-Enter.
+keybind = alt+shift+enter=csi:13;4u
+keybind = super+control+shift+alt+arrow_down=resize_split:down,100
+keybind = super+control+shift+alt+arrow_up=resize_split:up,100
+keybind = super+control+shift+alt+arrow_left=resize_split:left,100
+keybind = super+control+shift+alt+arrow_right=resize_split:right,100
+
+# Slowdown mouse scrolling
+mouse-scroll-multiplier = 0.95
+
+# Fix general slowness on hyprland (https://github.com/ghostty-org/ghostty/discussions/3224)
+async-backend = epoll

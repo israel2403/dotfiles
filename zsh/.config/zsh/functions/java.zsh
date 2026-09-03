@@ -1,14 +1,47 @@
 # Java and Maven helpers.
+_run_java_free_port() {
+  command python3 -c 'import socket; s = socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()'
+}
+
 run_java() {
   if [ ! -f pom.xml ]; then
     echo "run_java: no pom.xml found in the current directory" >&2
     return 1
   fi
 
+  # Jakarta web applications configured with the TomEE Maven plugin are WAR
+  # projects without a conventional main method. Package and launch them in
+  # the embedded TomEE server instead.
+  if grep -qE '<artifactId>tomee-maven-plugin</artifactId>' pom.xml; then
+    local port shutdown_port
+    port=$(_run_java_free_port) || {
+      echo "run_java: could not find a free port" >&2
+      return 1
+    }
+    shutdown_port=$(_run_java_free_port) || {
+      echo "run_java: could not find a free shutdown port" >&2
+      return 1
+    }
+
+    echo "run_java: TomEE will use http://localhost:$port"
+    mvn clean package tomee:run \
+      -Dtomee-plugin.http="$port" \
+      -Dtomee-plugin.shutdown="$shutdown_port" \
+      "$@"
+    return $?
+  fi
+
   # Spring Boot projects provide their own run goal and may not have a
   # conventional main class under src/main/java.
   if grep -qE '<artifactId>spring-boot-(starter-parent|maven-plugin)</artifactId>' pom.xml; then
-    mvn spring-boot:run "$@"
+    local port
+    port=$(_run_java_free_port) || {
+      echo "run_java: could not find a free port" >&2
+      return 1
+    }
+
+    echo "run_java: Spring Boot will use http://localhost:$port"
+    mvn spring-boot:run "-Dspring-boot.run.jvmArguments=-Dserver.port=$port" "$@"
     return $?
   fi
 

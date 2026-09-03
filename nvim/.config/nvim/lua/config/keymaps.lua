@@ -23,6 +23,19 @@ vim.keymap.set({ "n", "x" }, "R", "<Nop>", { desc = "Disabled (was: Replace mode
 local map = vim.keymap.set
 local start_cwd = vim.g.nvim_start_cwd or vim.uv.cwd()
 
+map("n", "<leader>yp", function()
+  local path = vim.api.nvim_buf_get_name(0)
+
+  if path == "" then
+    vim.notify("Current buffer has no file path", vim.log.levels.WARN)
+    return
+  end
+
+  path = vim.fn.fnamemodify(path, ":p")
+  vim.fn.setreg("+", path)
+  vim.notify("Copied file path: " .. path)
+end, { desc = "Copy Absolute File Path" })
+
 local function set_move_line_keymaps(opts)
   opts = opts or {}
   map("n", "J", ":move .+1<CR>==", vim.tbl_extend("force", opts, { desc = "Move line down" }))
