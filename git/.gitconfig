@@ -9,7 +9,6 @@
 
 [core]
 	editor = nvim
-	pager = delta
 
 # Delta is the normal pager for Git commands. Interactive fzf previews use
 # `git --no-pager` locally so a nested pager can never block the selector.
