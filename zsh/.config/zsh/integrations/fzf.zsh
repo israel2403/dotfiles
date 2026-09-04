@@ -48,3 +48,25 @@ rgg() {
   line=${${result#*:}%%:*}
   [[ -n $file ]] && nvim "+$line" -- "$file"
 }
+
+# Pick a Java/Maven helper and place it on the next command line without
+# executing it. This leaves room to add any arguments the helper requires.
+java_tools() {
+  (( $+commands[fzf] )) || {
+    print -u2 'java_tools: requires fzf'
+    return 1
+  }
+
+  local selection
+  selection=$(printf '%s\t%s\n' \
+    'mvn_new' 'Create a Maven project' \
+    'run_java' 'Run the current Maven Java project' \
+    'mvn_tomee_new' 'Create a Jakarta JSP/TomEE project' |
+    fzf --delimiter=$'\t' --with-nth=1,2 \
+      --prompt='Java tool> ' \
+      --bind='tab:down,btab:up' \
+      --header='Tab/arrow keys to move, Enter to choose; nothing is executed') || return
+
+  [[ -n $selection ]] || return
+  print -z -- "${selection%%$'\t'*} "
+}

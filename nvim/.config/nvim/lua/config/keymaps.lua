@@ -23,6 +23,19 @@ vim.keymap.set({ "n", "x" }, "R", "<Nop>", { desc = "Disabled (was: Replace mode
 local map = vim.keymap.set
 local start_cwd = vim.g.nvim_start_cwd or vim.uv.cwd()
 
+map("n", "<leader>yp", function()
+  local path = vim.api.nvim_buf_get_name(0)
+
+  if path == "" then
+    vim.notify("Current buffer has no file path", vim.log.levels.WARN)
+    return
+  end
+
+  path = vim.fn.fnamemodify(path, ":p")
+  vim.fn.setreg("+", path)
+  vim.notify("Copied file path: " .. path)
+end, { desc = "Copy Absolute File Path" })
+
 local function set_move_line_keymaps(opts)
   opts = opts or {}
   map("n", "J", ":move .+1<CR>==", vim.tbl_extend("force", opts, { desc = "Move line down" }))
@@ -68,22 +81,6 @@ end, { desc = "Find Files (Start Dir)" })
 map("n", "<leader><space>", function()
   LazyVim.pick("files", { cwd = start_cwd, root = false })()
 end, { desc = "Find Files (Start Dir)" })
-
-local function maven_spotless_apply()
-  vim.cmd("MavenSpotlessApply")
-end
-
-map({ "n", "x" }, "<M-f>", maven_spotless_apply, { desc = "Maven Spotless Apply", remap = false })
-map("i", "<M-f>", function()
-  vim.cmd.stopinsert()
-  vim.schedule(maven_spotless_apply)
-end, { desc = "Maven Spotless Apply", remap = false })
-map({ "n", "x" }, "<F4>", maven_spotless_apply, { desc = "Maven Spotless Apply", remap = false })
-map("i", "<F4>", function()
-  vim.cmd.stopinsert()
-  vim.schedule(maven_spotless_apply)
-end, { desc = "Maven Spotless Apply", remap = false })
-map({ "n", "x" }, "<leader>Jf", maven_spotless_apply, { desc = "Maven Spotless Apply", remap = false })
 
 map("n", "<leader>nf", "<cmd>Telescope find_files cwd=~/notes<cr>", { desc = "Find notes" })
 map("n", "<leader>ng", "<cmd>Telescope live_grep cwd=~/notes<cr>", { desc = "Grep notes" })

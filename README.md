@@ -174,12 +174,42 @@ of pager configuration.
 
 ### Development
 
-* `nvim` contains the LazyVim-based Neovim config.
+* `nvim` contains the LazyVim-based Neovim config, including JSP/HTML/CSS/JavaScript support.
+  JSP EL completion discovers request attributes set by Java servlets that
+  forward to the current page, so `${mes` can complete to `${message}`.
+* `tomee-jsp` installs a minimal Jakarta JSP/TomEE example at `~/Projects/tomee-jsp`.
 * `lean` adds `~/.elan/bin` to your shell PATH after `setup-lean` installs elan.
 * `sdkman` initializes SDKMAN from `~/.config/profile.d/sdkman.sh`.
 * `nvm` initializes NVM from either Ubuntu's `~/.nvm/nvm.sh` or Arch's
   `/usr/share/nvm/init-nvm.sh`.
 * `scripts` installs bootstrap helpers into `~/.local/bin`.
+
+### JSP with Apache TomEE
+
+The `tomee-jsp` Stow package is shared by the Ubuntu and Omarchy profiles. It
+provides a minimal Maven WAR project using Jakarta EE 10 and TomEE 10.2.0.
+Java, Maven, and Java language tooling are intentionally not installed again.
+
+```bash
+cd ~/dotfiles
+make ubuntu-stow   # Ubuntu 24.04 LTS
+# or: make omarchy-stow
+
+cd ~/Projects/tomee-jsp
+mvn clean package tomee:run
+```
+
+Open <http://localhost:8080/jsp-demo/hello>. Type `quit` in the Maven console
+to stop TomEE cleanly.
+
+Create another JSP/TomEE project from any directory with the Zsh helper:
+
+```bash
+mvn_tomee_new my-webapp
+mvn_tomee_new --group com.acme --java 21 my-webapp
+```
+
+Run `mvn_tomee_new --help` for version overrides and environment defaults.
 
 ### Terminal Markdown Preview
 

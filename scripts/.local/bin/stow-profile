@@ -6,10 +6,10 @@ DOTFILES="${DOTFILES:-$HOME/dotfiles}"
 TARGET="${STOW_TARGET:-$HOME}"
 
 COMMON_PACKAGES=(
-  bash fff git lazygit lean mime nvim nvm qutebrowser scripts sdkman zsh
+  bash fff git lazygit lean nvim nvm qutebrowser scripts sdkman tomee-jsp zsh
 )
-UBUNTU_PACKAGES=(ghostty)
-OMARCHY_PACKAGES=(hypr)
+UBUNTU_PACKAGES=(ghostty mime)
+OMARCHY_PACKAGES=(hypr mime-omarchy)
 
 profile=""
 mode="stow"

@@ -89,18 +89,66 @@ local function run_spotless_apply()
   end)
 end
 
-vim.api.nvim_create_user_command("MavenSpotlessApply", run_spotless_apply, { desc = "Run mvn spotless:apply" })
+local function format_html()
+  local ok, conform = pcall(require, "conform")
+  if not ok then
+    vim.notify("conform.nvim is unavailable", vim.log.levels.ERROR)
+    return
+  end
 
-vim.keymap.set({ "n", "x" }, "<M-f>", run_spotless_apply, { desc = "Maven Spotless Apply" })
+  local formatted, err = pcall(conform.format, {
+    bufnr = 0,
+    async = false,
+    formatters = { "prettier_html" },
+    lsp_format = "never",
+  })
+  if not formatted then
+    vim.notify("HTML formatting failed: " .. tostring(err), vim.log.levels.ERROR)
+    return
+  end
+
+  -- Keep the closing bracket of multi-attribute paired tags with the final
+  -- attribute. Prettier's standalone `/>` for void elements remains unchanged.
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  for index = #lines, 2, -1 do
+    if lines[index]:match("^%s*>%s*$") then
+      lines[index - 1] = lines[index - 1] .. ">"
+      table.remove(lines, index)
+    end
+  end
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, lines)
+
+  if vim.bo.modified then
+    vim.cmd.write()
+  end
+  vim.notify("HTML formatted with Prettier", vim.log.levels.INFO)
+end
+
+local function format_current_buffer()
+  if find_maven_root() then
+    run_spotless_apply()
+  elseif vim.bo.filetype == "html" then
+    format_html()
+  else
+    vim.notify("F4 formatting supports Maven projects and HTML files", vim.log.levels.WARN)
+  end
+end
+
+vim.api.nvim_create_user_command("MavenSpotlessApply", run_spotless_apply, { desc = "Run mvn spotless:apply" })
+vim.api.nvim_create_user_command("FormatWithF4", format_current_buffer, {
+  desc = "Format a Maven project with Spotless or an HTML file with Prettier",
+})
+
+vim.keymap.set({ "n", "x" }, "<M-f>", format_current_buffer, { desc = "Format (Spotless or HTML)" })
 vim.keymap.set("i", "<M-f>", function()
   vim.cmd.stopinsert()
-  vim.schedule(run_spotless_apply)
-end, { desc = "Maven Spotless Apply" })
-vim.keymap.set({ "n", "x" }, "<F4>", run_spotless_apply, { desc = "Maven Spotless Apply" })
+  vim.schedule(format_current_buffer)
+end, { desc = "Format (Spotless or HTML)" })
+vim.keymap.set({ "n", "x" }, "<F4>", format_current_buffer, { desc = "Format (Spotless or HTML)" })
 vim.keymap.set("i", "<F4>", function()
   vim.cmd.stopinsert()
-  vim.schedule(run_spotless_apply)
-end, { desc = "Maven Spotless Apply" })
+  vim.schedule(format_current_buffer)
+end, { desc = "Format (Spotless or HTML)" })
 vim.keymap.set({ "n", "x" }, "<leader>Jf", run_spotless_apply, { desc = "Maven Spotless Apply" })
 
 return {
@@ -118,8 +166,8 @@ return {
     optional = true,
     opts = {
       spec = {
-        { "<M-f>", run_spotless_apply, desc = "Maven Spotless Apply" },
-        { "<F4>", run_spotless_apply, desc = "Maven Spotless Apply" },
+        { "<M-f>", format_current_buffer, desc = "Format (Spotless or HTML)" },
+        { "<F4>", format_current_buffer, desc = "Format (Spotless or HTML)" },
         { "<leader>Jf", run_spotless_apply, desc = "Maven Spotless Apply" },
       },
     },

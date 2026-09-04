@@ -5,7 +5,7 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="$HOME/bin:$HOME/.local/bin:$PATH"
 
 # Initialize Homebrew before loading modules that detect optional formulae.
 if [[ -x /home/linuxbrew/.linuxbrew/bin/brew ]]; then
@@ -53,6 +53,9 @@ done
 source "$HOME/.config/zsh/functions/files.zsh"
 source "$HOME/.config/zsh/functions/navigation.zsh"
 source "$HOME/.config/zsh/functions/java.zsh"
+source "$HOME/.config/zsh/functions/php.zsh"
+source "$HOME/.config/zsh/functions/php-server.zsh"
+source "$HOME/.config/zsh/functions/tomee.zsh"
 source "$HOME/.config/zsh/functions/git.zsh"
 
 source "$HOME/.config/zsh/integrations/fzf.zsh"
