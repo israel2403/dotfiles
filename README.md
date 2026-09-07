@@ -84,6 +84,13 @@ make bootstrap
 `make bootstrap` remains the full Omarchy/new-machine flow. For links only,
 use `make omarchy-stow`.
 
+The `hypr` package includes `input.lua` for current Omarchy and `input.conf`
+for older installations. Both configure English (US, AltGr international) and
+Latin American Spanish. Press **Left Alt + Right Alt** to switch layouts.
+The standard Omarchy `omarchy.keyboard-layout` bar widget appears as **EN/ES**
+when multiple layouts are enabled; click it to switch or hover to see the full
+language name. Keep that widget enabled in your machine’s `~/.config/omarchy/shell.json`.
+
 ## Common Commands
 
 ```bash

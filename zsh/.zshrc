@@ -75,5 +75,8 @@ alias grep='grep --color=auto'
 
 [[ -r "$HOME/.p10k.zsh" ]] && source "$HOME/.p10k.zsh"
 
+# Call the executable because initialization defines a function named try.
+eval "$(command try init ~/src/tries)"
+
 export SDKMAN_DIR="$HOME/.sdkman"
 [[ -s "$SDKMAN_DIR/bin/sdkman-init.sh" ]] && source "$SDKMAN_DIR/bin/sdkman-init.sh"
