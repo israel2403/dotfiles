@@ -7,17 +7,49 @@ if command -v zellij >/dev/null 2>&1; then
   exit 0
 fi
 
+# Omarchy is Arch-based, where Zellij is available from the official repositories.
 if command -v pacman >/dev/null 2>&1; then
   sudo pacman -S --needed --noconfirm zellij
 elif command -v apt-cache >/dev/null 2>&1 \
   && apt-cache show zellij >/dev/null 2>&1; then
   sudo apt-get update
   sudo apt-get install -y zellij
-elif command -v cargo >/dev/null 2>&1; then
-  cargo install --locked zellij
 else
-  echo "setup-zellij: no supported package manager or Cargo installation found." >&2
-  exit 1
+  # Ubuntu does not ship Zellij in every supported APT release. Use the
+  # project static Linux binary instead of requiring a Rust toolchain.
+  case "$(uname -m)" in
+    x86_64|amd64) release_arch="x86_64" ;;
+    aarch64|arm64) release_arch="aarch64" ;;
+    *)
+      if command -v cargo >/dev/null 2>&1; then
+        cargo install --locked zellij
+      else
+        echo "setup-zellij: unsupported architecture: $(uname -m)" >&2
+        exit 1
+      fi
+      ;;
+  esac
+
+  if [[ -n "${release_arch:-}" ]]; then
+    if ! command -v curl >/dev/null 2>&1; then
+      echo "setup-zellij: curl is required to download the Zellij release." >&2
+      exit 1
+    fi
+
+    archive="zellij-${release_arch}-unknown-linux-musl.tar.gz"
+    url="https://github.com/zellij-org/zellij/releases/latest/download/${archive}"
+    tmp_dir="$(mktemp -d)"
+    trap 'rm -rf "$tmp_dir"' EXIT
+
+    curl -fL "$url" -o "$tmp_dir/$archive"
+    tar -xzf "$tmp_dir/$archive" -C "$tmp_dir" zellij
+    mkdir -p "$HOME/.local/bin"
+    install -m 0755 "$tmp_dir/zellij" "$HOME/.local/bin/zellij"
+  fi
 fi
 
-zellij --version
+if command -v zellij >/dev/null 2>&1; then
+  zellij --version
+else
+  "$HOME/.local/bin/zellij" --version
+fi
