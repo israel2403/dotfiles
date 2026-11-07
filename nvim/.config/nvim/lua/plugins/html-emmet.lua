@@ -18,13 +18,17 @@ return {
     opts = {
       servers = {
         html = {
-          filetypes = { "html", "jsp" },
+          filetypes = { "html", "htmlangular", "jsp" },
         },
         cssls = {},
         ts_ls = {},
         emmet_language_server = {
+          init_options = {
+            includeLanguages = { htmlangular = "html" },
+          },
           filetypes = {
             "html",
+            "htmlangular",
             "jsp",
             "css",
             "scss",

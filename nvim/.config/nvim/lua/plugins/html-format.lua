@@ -4,10 +4,14 @@ return {
     opts = {
       formatters_by_ft = {
         html = { "prettier_html" },
+        htmlangular = { "prettier_html" },
       },
       formatters = {
         prettier_html = {
           inherit = "prettier",
+          options = {
+            ft_parsers = { htmlangular = "angular" },
+          },
           prepend_args = {
             "--single-attribute-per-line",
             "--html-whitespace-sensitivity",

@@ -93,3 +93,15 @@ map("n", "<leader>ob", "<cmd>Obsidian backlinks<cr>", { desc = "Show backlinks" 
 map("n", "<leader>ol", "<cmd>Obsidian links<cr>", { desc = "Show links in current note" })
 map("n", "<leader>or", "<cmd>Obsidian rename<cr>", { desc = "Rename note and backlinks" })
 map("n", "<leader>op", "<cmd>Obsidian paste_img<cr>", { desc = "Paste image with obsidian.nvim" })
+
+-- Switch buffers without leaving insert mode; follow the bufferline display order.
+vim.keymap.set({ "n", "i" }, "<M-h>", "<Cmd>BufferLineCyclePrev<CR>", { desc = "Previous Buffer" })
+vim.keymap.set({ "n", "i" }, "<M-l>", "<Cmd>BufferLineCycleNext<CR>", { desc = "Next Buffer" })
+
+-- Move the current file within the directory where Neovim was launched.
+map("n", "<leader>bm", function()
+  require("config.move-file").move()
+end, { desc = "Move File (Start Dir)" })
+
+-- Install after LazyVim defaults so Ctrl+/ uses the shared task panel.
+require("config.task-panel-keymaps")

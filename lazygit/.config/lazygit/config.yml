@@ -32,8 +32,9 @@ gui:
   nerdFontsVersion: "3"
   scrollHeight: 3
   showBottomLine: true
-  authorColors:
-    "*": "yellow"
+  theme:
+    authorColors:
+      "*": "yellow"
 update:
   method: never # lazygit is managed by pacman; don't self-update
 confirmOnQuit: false

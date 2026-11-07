@@ -35,10 +35,24 @@ local function ensure_spotless_plugin(root)
     return true
   end
 
-  if xml:find("<build>%s*<plugins>", 1, false) then
-    xml = xml:gsub("(<build>%s*<plugins>%s*)", "%1" .. spotless_plugin:match("<plugin>.*</plugin>") .. "\n", 1)
-  elseif xml:find("<build>", 1, false) then
-    xml = xml:gsub("(<build>%s*)", "%1\n" .. spotless_plugin .. "\n", 1)
+  if xml:find("<build>", 1, true) then
+    local first, last = xml:find("<build>.-</build>")
+    if not first then
+      return false, "Could not find matching </build> in pom.xml"
+    end
+    local build = xml:sub(first, last)
+    -- Ignore pluginManagement when locating the build's active plugins.
+    local searchable = build:gsub("<pluginManagement>.-</pluginManagement>", function(block)
+      return string.rep(" ", #block)
+    end)
+    local _, plugins_end = searchable:find("<plugins>")
+    if plugins_end then
+      build = build:sub(1, plugins_end) .. "\n" .. spotless_plugin:match("<plugin>.*</plugin>")
+        .. "\n" .. build:sub(plugins_end + 1)
+    else
+      build = build:gsub("</build>", spotless_plugin .. "\n</build>", 1)
+    end
+    xml = xml:sub(1, first - 1) .. build .. xml:sub(last + 1)
   elseif xml:find("</project>", 1, false) then
     xml = xml:gsub("%s*</project>%s*$", "\n  <build>\n" .. spotless_plugin .. "\n  </build>\n</project>\n", 1)
   else
@@ -78,13 +92,21 @@ local function run_spotless_apply()
         return
       end
 
+      local pom = root .. "/pom.xml"
+      local formatted = vim.system({ "xmllint", "--format", pom }, { text = true }):wait()
+      if formatted.code ~= 0 then
+        vim.notify("POM formatting failed: " .. (formatted.stderr or "Install xmllint"), vim.log.levels.ERROR)
+        return
+      end
+      vim.fn.writefile(vim.split(formatted.stdout:gsub("\n$", ""), "\n", { plain = true }), pom)
+
       if vim.api.nvim_buf_is_valid(bufnr) and not vim.bo[bufnr].modified then
         vim.api.nvim_buf_call(bufnr, function()
           vim.cmd("silent! edit")
         end)
       end
 
-      vim.notify("Spotless applied", vim.log.levels.INFO)
+      vim.notify("Spotless applied and pom.xml formatted", vim.log.levels.INFO)
     end)
   end)
 end
@@ -127,7 +149,7 @@ end
 local function format_current_buffer()
   if find_maven_root() then
     run_spotless_apply()
-  elseif vim.bo.filetype == "html" then
+  elseif vim.bo.filetype == "html" or vim.bo.filetype == "htmlangular" then
     format_html()
   else
     vim.notify("F4 formatting supports Maven projects and HTML files", vim.log.levels.WARN)
@@ -153,13 +175,13 @@ vim.keymap.set({ "n", "x" }, "<leader>Jf", run_spotless_apply, { desc = "Maven S
 
 return {
   {
-    "eatgrass/maven.nvim",
-    dependencies = {
-      "nvim-lua/plenary.nvim",
+    "oclay1st/maven.nvim",
+    cmd = { "Maven", "MavenInit", "MavenExec", "MavenFavorites" },
+    dependencies = { "MunifTanjim/nui.nvim" },
+    opts = {},
+    keys = {
+      { "<leader>cM", "<cmd>Maven<cr>", desc = "Maven projects and dependencies" },
     },
-    config = function()
-      require("maven").setup()
-    end,
   },
   {
     "folke/which-key.nvim",

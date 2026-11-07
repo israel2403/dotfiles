@@ -87,9 +87,14 @@ use `make omarchy-stow`.
 The `hypr` package includes `input.lua` for current Omarchy and `input.conf`
 for older installations. Both configure English (US, AltGr international) and
 Latin American Spanish. Press **Left Alt + Right Alt** to switch layouts.
-The standard Omarchy `omarchy.keyboard-layout` bar widget appears as **EN/ES**
-when multiple layouts are enabled; click it to switch or hover to see the full
-language name. Keep that widget enabled in your machine’s `~/.config/omarchy/shell.json`.
+The `hypr` package also includes the custom `isra.keyboard-layout` bar widget.
+It excludes Bluetooth headset media controls (AVRCP), laptop hotkey interfaces,
+and virtual keyboards so **EN/ES** switches a real typing keyboard. Click it
+to cycle English/Latin American Spanish, or use **Left Alt + Right Alt** on the
+keyboard you want to switch. Both layouts remain available to the laptop and
+Glove80; English keeps immediate quotes and AltGr international characters.
+After stowing on another Omarchy machine, run `omarchy plugin enable isra.keyboard-layout`
+to replace the standard widget in `~/.config/omarchy/shell.json`.
 
 ## Common Commands
 

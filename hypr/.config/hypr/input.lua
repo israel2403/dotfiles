@@ -8,8 +8,8 @@ hl.config({
     kb_layout = "us,latam",
     -- Keep quotes immediate; use Right Alt (AltGr) for international characters.
     kb_variant = "altgr-intl,",
-    -- Left Alt + Right Alt switches languages; Caps Lock keeps working.
-    kb_options = "grp:alts_toggle",
+    -- Alt + Space switches languages; Right Alt stays AltGr.
+    kb_options = "grp:alt_space_toggle",
   },
 })
 
